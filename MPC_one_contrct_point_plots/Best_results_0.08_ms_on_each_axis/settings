@@ -1,0 +1,21 @@
+% Object's parameters
+len = 0.1;
+radius = 0.05;
+width = radius*2;
+height = 0.05;
+mass = 3;
+
+% Simulation parameters
+duration = 8;
+timestep = 0.001;
+mpc_timestep = 0.03;
+N = 30;
+
+x_0 = 0;
+x_f = 0.08 * duration;
+y_0 = 0;
+y_f = 0.08 * duration;
+
+Q = 80 * diag([4, 4, 0.1, 0]);      % State cost matrix
+QN = 22000 * diag([5, 5, 0.1, 0]);   % Terminal state cost matrix
+R = 0.01 * diag([1, 1, 0.1]);          % Input cost matrix
