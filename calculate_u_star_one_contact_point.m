@@ -23,7 +23,8 @@ function [fn_star, ft_star, phi_star_dot, phi_star, timestep_number] = calculate
         'Diagnostics', 'off');
     
     for i = 1:(duration/timestep)+1
-        initial_guess = [1, 1, 4];
+        % initial_guess = [1, 1, 1.5]; % straight line
+        initial_guess = [5, 0.1, 1.5]; % quarter-circle, semi-circle, S-shape-trajectory
         [solution, fval, exitflag, output] = fsolve(@(u_star) system_equations ... 
                                             (u_star, L, x_star_dot(i), y_star_dot(i), ...
                                             theta_star(i), theta_star_dot(i), len, radius), ...

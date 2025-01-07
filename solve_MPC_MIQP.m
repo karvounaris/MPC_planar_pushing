@@ -142,7 +142,7 @@ function mpc_output = solve_MPC_MIQP(x_star, u_star, dx_0, mu, L, radius, len, N
     params.OptimalityTol = 1e-9;
     params.FeasibilityTol = 1e-9;
     params.Heuristics = 0.1;
-    params.TimeLimit = 60;
+    params.TimeLimit = 300;
     params.MIPFocus = 2;
     
     % Solve the problem with Gurobi

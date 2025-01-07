@@ -12,7 +12,7 @@ len = 0.1;
 radius = 0.05;
 width = radius*2;
 height = 0.05;
-mass = 3;
+mass = 4;
 rectangular_prism_mass = mass * (2*len*radius) / (2*len*radius + pi*radius^2);
 cylinder_mass = mass * (pi*radius^2) / (2*len*radius + pi*radius^2);
 object_shape = "rectangular_capsule_prism";
@@ -33,28 +33,29 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-trajectory_radius = 0.5;
+trajectory_radius = 0.2;
 
 % Simulation parameters
-duration = 12;
+duration = 6;
 timestep = 0.001;
-mpc_timestep = 0.03;
-N = 30;
+mpc_timestep = 0.02;
+N = 40;
 
 x_0 = 0;
-x_f = 0.06 * duration;
+x_f = 0.04 * duration;
 y_0 = 0;
-y_f = 0.06 * duration;
+y_f = 0.04 * duration;
+
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
-%                         seventh_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
+%                         fifth_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
 [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
                         constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         quarter_circle_trajectory(duration, trajectory_radius, timestep);
-% x(1,1) = trajectory_radius;
 
+% NOTE: change the initial guess that depends on the trajectory selected
 [fn_star, ft_star, phi_star_dot, phi_star, ~] = ...
                           calculate_u_star_one_contact_point(L, x_star_dot, y_star_dot, theta_star, ...
                           theta_star_dot, len, radius, timestep, duration);
@@ -73,7 +74,8 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-x(:,1) = [0.03, 0, 0, phi_star(1)];
+x(:,1) = [0.02, 0, 0, phi_star(1)];
+% x(:,1) = [trajectory_radius + 0.01, 0, 0, phi_star(1)];
 x_start = [];
 
 % MPC controller tunable parameters
@@ -113,7 +115,13 @@ for i = 1:floor(duration/timestep)
     % Calculate parameters for the motion equation
     w = calculate_motion_model_parameters(u(:,i), x(3,i), len, radius, x(4,i));
     ground_friction_parameter = 1;
-    [gr_frict, ~] = calculate_friction_with_ground(L, dp(:,i), ground_friction_parameter);
+    [gr_frict, number] = calculate_friction_with_ground(L, dp(:,i), ground_friction_parameter);
+
+    if number == 1
+        j(i) = 1;
+    elseif number == 0
+        j(i) = 0;
+    end
 
     ground_friction(:,i) = -gr_frict;
     wrench(:,i) = w;
@@ -432,3 +440,13 @@ legend('Wrench', 'Ground Friction');
 grid on;
 
 sgtitle('Wrench and Ground Friction Forces and Torque over Time');
+
+%% Plots for debug
+
+figure;
+plot(time(1:length(time)-1), j, 'LineWidth', 2);
+title('binary debug');
+xlabel('Time (s)');
+ylabel('on-off mode');
+legend('Ground Friction');
+grid on;

@@ -12,7 +12,8 @@ clc
 len = 0.1;
 radius = 0.05;
 width = radius*2;
-mass = 1;
+height = 0.05;
+mass = 3;
 object_shape = "rectangular_capsule_prism";
 contact_area = calculate_contact_area(len, width, radius, object_shape);
 
@@ -20,7 +21,7 @@ alpha = 0.63;
 g = 9.81;
 R = sqrt(contact_area/pi);
 F_N = mass * g;
-ground_friction_parameter = 10;
+ground_friction_parameter = 1;
 mu_ground = 0.5;
 
 L = [1/(mu_ground*F_N)^2 0 0;
@@ -33,18 +34,18 @@ x_f = 0.5;
 y_0 = 0;
 y_f = 0.5;
 
-duration = 5;
-trajectory_radius = 0.5;
+duration = 6;
+trajectory_radius = 0.3;
 timestep = 0.001;
 
-[x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, time] = ...
-                        constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
+% [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, time] = ...
+%                         constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, time] = ...
-%                         seventh_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
+%                         fifth_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
-% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time] = ...
-%                         quarter_circle_trajectory(duration, trajectory_radius, timestep);
+[x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time] = ...
+                        quarter_circle_trajectory(duration, trajectory_radius, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time] = ...
 %                           semi_circle_trajectory(duration, trajectory_radius, timestep);
