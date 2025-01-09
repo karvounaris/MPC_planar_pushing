@@ -33,27 +33,42 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-trajectory_radius = 0.2;
-
-% Simulation parameters
-duration = 6;
-timestep = 0.001;
-mpc_timestep = 0.02;
-N = 40;
-
+duration = 8;
 x_0 = 0;
 x_f = 0.04 * duration;
 y_0 = 0;
 y_f = 0.04 * duration;
 
+timestep = 0.001;
+mpc_timestep = 0.03;
+timestep_parameter = mpc_timestep/timestep;
+N = 30;
+trajectory_radius = 0.2;
+v_constant = 0.055;
+
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         fifth_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
-[x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
-                        constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
+% [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
+%                         constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         quarter_circle_trajectory(duration, trajectory_radius, timestep);
+
+[x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+                    constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant, timestep);
+
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
+%                           semi_circle_trajectory(duration, trajectory_radius, timestep);
+
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+%                     constant_velocity_semi_circle_trajectory(trajectory_radius, v_constant, timestep);
+
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
+%                         s_shape_trajectory(duration, trajectory_radius, timestep);
+
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+%                     constant_velocity_s_shape_trajectory(trajectory_radius, v_constant, timestep);
 
 % NOTE: change the initial guess that depends on the trajectory selected
 [fn_star, ft_star, phi_star_dot, phi_star, ~] = ...
@@ -63,8 +78,8 @@ y_f = 0.04 * duration;
 x_star = [x_star; y_star; theta_star; phi_star];
 u_star = [fn_star; ft_star; phi_star_dot];
 % Define the extension for x_star and u_star
-x_star_extension = repmat(x_star(:, end), 1, N); % Repeat last column of x_star N times
-u_star_extension = zeros(size(u_star, 1), N);    % Create zero matrix for u_star
+x_star_extension = repmat(x_star(:, end), 1, N*timestep_parameter); % Repeat last column of x_star N times
+u_star_extension = zeros(size(u_star, 1), N*timestep_parameter);    % Create zero matrix for u_star
 % Append the extensions to x_star and u_star
 x_star = [x_star, x_star_extension];
 u_star = [u_star, u_star_extension];
@@ -74,13 +89,13 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-x(:,1) = [0.02, 0, 0, phi_star(1)];
-% x(:,1) = [trajectory_radius + 0.01, 0, 0, phi_star(1)];
+x(:,1) = [trajectory_radius+0.04, 0, 0, phi_star(1)];
+% x(:,1) = [0.03, -0.03, 0, phi_star(1)];
 x_start = [];
 
 % MPC controller tunable parameters
-Q = 80 * diag([4, 4, 0.1, 0]);      % State cost matrix
-QN = 25000 * diag([5, 5, 0.1, 0]);   % Terminal state cost matrix
+Q = 60 * diag([4, 4, 0.1, 0]);      % State cost matrix
+QN = 26000 * diag([5, 5, 0.1, 0]);   % Terminal state cost matrix
 R = 0.01 * diag([1, 1, 0.1]);          % Input cost matrix
 %% Run simulation
 
@@ -95,13 +110,15 @@ for i = 1:floor(duration/timestep)
     dx(:,i) = x(:,i) - x_star(:,i);
     
     if (mod(i*timestep,mpc_timestep) == 0) || i == 1
+        [x_star_mpc, u_star_mpc] = create_mpc_star_input(x_star, u_star, ...
+                                    N, i, timestep_parameter);
         tic;
-        mpc_output = solve_MPC_MIQP(x_star(:, i:i+N), u_star(:, i:i+N), dx(:,i), mu, L, ...
+        mpc_output = solve_MPC_MIQP(x_star_mpc, u_star_mpc, dx(:,i), mu, L, ...
                                            radius, len, N, mpc_timestep,  Q, QN, R, x_start, is_start);
         solver_times(i) = toc;
         is_start = 0;
         fprintf('Time is: %g\n', time(i));
-        % fprintf('Error is: %2.4f %2.4f %2.4f %2.4f\n', dx(1,i), dx(2,i), dx(3,i), dx(4,i));
+        fprintf('Error is: %2.4f %2.4f %2.4f %2.4f\n', dx(1,i), dx(2,i), dx(3,i), dx(4,i));
         % fprintf('Velocity is: %2.4f %2.4f %2.4f\n', dp(1,i), dp(2,i), dp(3,i));
         du(:,i) = mpc_output(4*(N+1)+1 : 4*(N+1)+3);
         z(:,i) = mpc_output(4*(N+1)+3*N+1 : 4*(N+1)+3*N+3);
@@ -136,6 +153,7 @@ for i = 1:floor(duration/timestep)
 
     time(i+1) = time(i) + timestep;
     dp(:,i+1) = [x_dot(1, i+1); x_dot(2, i+1); x_dot(3, i+1)];
+    
 
 end
 
@@ -165,9 +183,9 @@ for i = 1:round(length(x(1,:))/10):length(x(1,:))
     capsule_shape = get_capsule_shape(len, radius, x(1,i), x(2,i), x(3,i));
 
     if isempty(capsule_shape_handle) 
-        capsule_shape_handle = fill(capsule_shape(:,1), capsule_shape(:,2), 'b', 'FaceAlpha', 0.3, 'DisplayName', 'Capsule Shape');
+        capsule_shape_handle = fill(capsule_shape(:,1), capsule_shape(:,2), 'b', 'FaceAlpha', 0.2, 'DisplayName', 'Capsule Shape');
     else
-        fill(capsule_shape(:,1), capsule_shape(:,2), 'b', 'FaceAlpha', 0.3);
+        fill(capsule_shape(:,1), capsule_shape(:,2), 'b', 'FaceAlpha', 0.2);
     end
 end
 
@@ -186,8 +204,17 @@ for i = 1:length(x(1,:))
 
 end
 
-plot(contact_x, contact_y, 'r-', 'LineWidth', 1.5, 'DisplayName', 'Contact Path');
+% Logical indices for j == 1 and j == 0
+idx_1 = (j == 1);
+idx_0 = (j == 0);
 
+% Plot for j == 1 (red circles)
+plot(contact_x(idx_1), contact_y(idx_1), 'ro', 'MarkerSize', 2);
+
+% Plot for j == 0 (green circles)
+plot(contact_x(idx_0), contact_y(idx_0), 'go', 'MarkerSize', 2);
+
+% plot(contact_x, contact_y, 'r-', 'LineWidth', 1.5, 'DisplayName', 'Contact Path');
 
 % Plot x_star and y_star trajectory
 plot(x_star(1,:), x_star(2,:), 'k-', 'LineWidth', 2); % x_star trajectory in black
@@ -195,12 +222,12 @@ plot(x_star(1,1), x_star(2,1), 'go', 'MarkerFaceColor', 'g'); % Start point of x
 plot(x_star(1,end), x_star(2,end), 'yo', 'MarkerFaceColor', 'y'); % End point of x_star in yellow
 
 legend([capsule_shape_handle; findobj(gca, 'DisplayName', 'Trajectory'); ...
-        findobj(gca, 'DisplayName', 'Start'); findobj(gca, 'DisplayName', 'End'); ...
-        findobj(gca, 'DisplayName', 'Contact Path')], ...
+        findobj(gca, 'DisplayName', 'Start'); findobj(gca, 'DisplayName', 'End')], ...
         'Location', 'Best');
+        % findobj(gca, 'DisplayName', 'Contact Path')], ...
+        % 'Location', 'Best');
 
 hold off;
-
 
 %% Plot x-x_star, y-y_star and theta-theta_star
 
@@ -208,9 +235,9 @@ figure;
 
 % First subplot for x and x_star over time
 subplot(3, 1, 1);
-plot(time, x(1,:), 'b-', 'LineWidth', 2); % Plot x
+plot(time, x(1, :), 'b-', 'LineWidth', 2); % Plot x
 hold on;
-plot(time, x_star(1,1:end-N), 'r-', 'LineWidth', 2); % Plot x_star
+plot(time, x_star(1, 1:length(x(1,:))), 'r-', 'LineWidth', 2); % Plot x_star
 title('x and x^* Over Time');
 xlabel('Time (s)');
 ylabel('x (m)');
@@ -219,9 +246,9 @@ grid on;
 
 % Second subplot for y and y_star over time
 subplot(3, 1, 2);
-plot(time, x(2,:), 'b-', 'LineWidth', 2); % Plot y
+plot(time, x(2, :), 'b-', 'LineWidth', 2); % Plot y
 hold on;
-plot(time, x_star(2,1:end-N), 'r-', 'LineWidth', 2); % Plot y_star
+plot(time, x_star(2, 1:length(x(2,:))), 'r-', 'LineWidth', 2); % Plot y_star
 title('y and y^* Over Time');
 xlabel('Time (s)');
 ylabel('y (m)');
@@ -230,9 +257,9 @@ grid on;
 
 % Third subplot for theta and theta_star over time
 subplot(3, 1, 3);
-plot(time, x(3,:), 'b-', 'LineWidth', 2); % Plot theta
+plot(time, x(3, :), 'b-', 'LineWidth', 2); % Plot theta
 hold on;
-plot(time, x_star(3,1:end-N), 'r-', 'LineWidth', 2); % Plot theta_star
+plot(time, x_star(3, 1:length(x(2,:))), 'r-', 'LineWidth', 2); % Plot theta_star
 title('\theta and \theta^* Over Time');
 xlabel('Time (s)');
 ylabel('\theta (rad)');
@@ -335,7 +362,7 @@ grid on;
 figure;
 % First subplot for dfn over time
 subplot(3, 1, 1);
-plot(time(1:end-1), du(1,:), 'LineWidth', 2);
+plot(time(1:length(du(1,:))), du(1,:), 'LineWidth', 2);
 title('dfn Over Time');
 xlabel('Time (s)');
 ylabel('dfn (N)');
@@ -343,7 +370,7 @@ grid on;
 
 % Second subplot for dft over time
 subplot(3, 1, 2);
-plot(time(1:end-1), du(2,:), 'LineWidth', 2);
+plot(time(1:length(du(2,:))), du(2,:), 'LineWidth', 2);
 title('dft Over Time');
 xlabel('Time (s)');
 ylabel('dft (N)');
@@ -351,7 +378,7 @@ grid on;
 
 % Third subplot for dphi_dot over time
 subplot(3, 1, 3);
-plot(time(1:end-1), du(3,:), 'LineWidth', 2);
+plot(time(1:length(du(3,:))), du(3,:), 'LineWidth', 2);
 title('dphi dot Over Time');
 xlabel('Time (s)');
 ylabel('dphi dot (rad/sec)');
@@ -407,7 +434,7 @@ grid on;
 
 figure;
 % First subplot for force on x-axis
-subplot(3,1,1);
+subplot(4,1,1);
 plot(time(1:end-1), wrench(1,:), 'LineWidth', 2);
 hold on;
 plot(time(1:end-1), ground_friction(1,:), 'LineWidth', 2);
@@ -418,7 +445,7 @@ legend('Wrench', 'Ground Friction');
 grid on;
 
 % Second subplot for force on y-axis
-subplot(3,1,2);
+subplot(4,1,2);
 plot(time(1:end-1), wrench(2,:), 'LineWidth', 2);
 hold on;
 plot(time(1:end-1), ground_friction(2,:), 'LineWidth', 2);
@@ -429,11 +456,22 @@ legend('Wrench', 'Ground Friction');
 grid on;
 
 % Third subplot for torque on z-axis
-subplot(3,1,3);
+subplot(4,1,3);
 plot(time(1:end-1), wrench(3,:), 'LineWidth', 2);
 hold on;
 plot(time(1:end-1), ground_friction(3,:), 'LineWidth', 2);
 title('Torque on z-axis over time');
+xlabel('Time (s)');
+ylabel('Torque (Nm)');
+legend('Wrench', 'Ground Friction');
+grid on;
+
+% Fourth subplot for torque on z-axis
+subplot(4,1,4);
+plot(time(1:end-1), sqrt(wrench(1,:).^2 + wrench(2,:).^2 + wrench(3,:).^2), 'LineWidth', 2);
+hold on;
+plot(time(1:end-1), sqrt(ground_friction(1,:).^2 + ground_friction(2,:).^2 + ground_friction(3,:).^2), 'LineWidth', 2);
+title('Norm of friction force over time');
 xlabel('Time (s)');
 ylabel('Torque (Nm)');
 legend('Wrench', 'Ground Friction');
