@@ -121,8 +121,23 @@ function mpc_output = solve_MPC_MIQP(x_star, u_star, dx_0, mu, L, radius, len, N
     model = struct();
     
     % Define variable bounds and types for all variables in the model
-    model.lb = [-inf * ones(4 * (N+1), 1); -200 * ones(3 * N, 1); zeros(3 * N, 1)];
-    model.ub = [inf * ones(4 * (N+1), 1); 200 * ones(3 * N, 1); ones(3 * N, 1)];
+    % model.lb = [-inf * ones(4 * (N+1), 1); -100 * ones(3 * N, 1); zeros(3 * N, 1)];
+    % model.ub = [inf * ones(4 * (N+1), 1); 100 * ones(3 * N, 1); ones(3 * N, 1)];
+    % Initialize bounds for state variables
+    model.lb = -inf * ones(4 * (N+1), 1);
+    model.ub =  inf * ones(4 * (N+1), 1);
+    
+    % Define bounds for inputs (u = [fn, ft, phi_dot])
+    lb_u = [-100; -100; -10];
+    ub_u = [ 100;  100;  10];
+    
+    % Repeat input bounds for N steps
+    model.lb = [model.lb; repmat(lb_u, N, 1)];
+    model.ub = [model.ub; repmat(ub_u, N, 1)];
+    
+    % Add binary variable bounds
+    model.lb = [model.lb; zeros(3 * N, 1)];
+    model.ub = [model.ub; ones(3 * N, 1)];
     model.vtype = [repmat('C', 1, 4 * (N+1) + 3 * N), repmat('B', 1, 3 * N)];
     
     % Set the remaining fields in model (A, rhs, Q, etc.) as in your code
