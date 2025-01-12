@@ -33,7 +33,7 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-duration = 4;
+duration = 8;
 x_0 = 0;
 x_f = 0.04 * duration;
 y_0 = 0;
@@ -49,8 +49,8 @@ v_constant = 0.055;
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         fifth_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
-[x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
-                        constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
+% [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
+%                         constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         quarter_circle_trajectory(duration, trajectory_radius, timestep);
@@ -67,8 +67,8 @@ v_constant = 0.055;
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         s_shape_trajectory(duration, trajectory_radius, timestep);
 
-% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
-%                     constant_velocity_s_shape_trajectory(trajectory_radius, v_constant, timestep);
+[x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+                    constant_velocity_s_shape_trajectory(trajectory_radius, v_constant, timestep);
 
 % NOTE: change the initial guess that depends on the trajectory selected
 [fn_star, ft_star, phi_star_dot, phi_star, ~] = ...
@@ -89,8 +89,8 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-% x(:,1) = [trajectory_radius+0.04, 0, 0, phi_star(1)];
-x(:,1) = [-0.05, -0.05, 0, phi_star(1)];
+x(:,1) = [trajectory_radius+0.03, -0.01, 0, phi_star(1)];
+% x(:,1) = [0.03, -0.03, 0, phi_star(1)];
 x_start = [];
 
 % MPC controller tunable parameters
