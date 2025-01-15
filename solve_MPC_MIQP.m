@@ -1,5 +1,5 @@
 % Define the MIQP solver function with Gurobi optimization
-function mpc_output = solve_MPC_MIQP(x_star, u_star, dx_0, mu, L, radius, len, N, timestep, Q, QN, R, x_start, is_start)
+function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, mu, L, radius, len, N, timestep, Q, QN, R, x_start, is_start)
     % Q = 10 * diag([3, 3, 0.1, 0]);    % State cost matrix
     % QN = 2000 * diag([3, 3, 0.1, 0]);  % Terminal state cost matrix
     % R = 0.5 * diag([1, 1, 0]);        % Input cost matrix
@@ -163,7 +163,20 @@ function mpc_output = solve_MPC_MIQP(x_star, u_star, dx_0, mu, L, radius, len, N
     % Solve the problem with Gurobi
     result = gurobi(model, params);
     
-    disp(result.status)
+    % Retrieve the solve time from Gurobi's output
+    gurobi_solve_time = result.runtime;
+
+    % Check the solver status and process the result
+    disp(result.status);
+    if strcmp(result.status, 'OPTIMAL')
+        % Extract the optimal solution
+        mpc_output = result.x;
+    elseif strcmp(result.status, 'TIME_LIMIT')
+        warning('Gurobi did not find an optimal solution within the time limit. Status: %s', result.status);
+        mpc_output = [];
+    else
+        error('Gurobi solver failed with status: %s', result.status);
+    end
 
     % Check for solution feasibility
     if strcmp(result.status, 'OPTIMAL')

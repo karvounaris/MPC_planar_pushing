@@ -113,9 +113,17 @@ for i = 1:floor(duration/timestep)
         [x_star_mpc, u_star_mpc] = create_mpc_star_input(x_star, u_star, ...
                                     N, i, timestep_parameter);
         tic;
-        mpc_output = solve_MPC_MIQP(x_star_mpc, u_star_mpc, dx(:,i), mu, L, ...
+        [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star_mpc, u_star_mpc, dx(:,i), mu, L, ...
                                            radius, len, N, mpc_timestep,  Q, QN, R, x_start, is_start);
-        solver_times(i) = toc;
+        if i == 1
+            solver_times(i) = toc;
+            gurobi_solve_times(i) = gurobi_solve_time;
+            mpc_activation(i) = 1;
+        else
+            solver_times(round(i * timestep / mpc_timestep)+1) = toc;
+            gurobi_solve_times(round(i * timestep / mpc_timestep)+1) = gurobi_solve_time;
+            mpc_activation(round(i * timestep / mpc_timestep)+1) = mpc_activation(round(i * timestep / mpc_timestep)) + 1;
+        end
         is_start = 0;
         fprintf('Time is: %g\n', time(i));
         fprintf('Error is: %2.4f %2.4f %2.4f %2.4f\n', dx(1,i), dx(2,i), dx(3,i), dx(4,i));
@@ -307,7 +315,7 @@ grid on;
 
 figure;
 % First subplot for dx over time
-subplot(3, 1, 1);
+subplot(4, 1, 1);
 plot(time(1:end-1), dx(1,:), 'LineWidth', 2);
 title('dx Over Time');
 xlabel('Time (s)');
@@ -315,7 +323,7 @@ ylabel('dx (m)');
 grid on;
 
 % Second subplot for dy over time
-subplot(3, 1, 2);
+subplot(4, 1, 2);
 plot(time(1:end-1), dx(2,:), 'LineWidth', 2);
 title('dy Over Time');
 xlabel('Time (s)');
@@ -323,11 +331,19 @@ ylabel('dy (m)');
 grid on;
 
 % Third subplot for dtheta over time
-subplot(3, 1, 3);
+subplot(4, 1, 3);
 plot(time(1:end-1), dx(3,:), 'LineWidth', 2);
 title('dtheta Over Time');
 xlabel('Time (s)');
 ylabel('dtheta (rad)');
+grid on;
+
+% Fourth subplot for torque on z-axis
+subplot(4,1,4);
+plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2), 'LineWidth', 2);
+title('Norm of dx and dy over time');
+xlabel('Time (s)');
+ylabel('Norm of dx and dy (m)');
 grid on;
 
 %% Plot fn ft and phi_dot in seperate plots
@@ -356,6 +372,7 @@ title('phi dot Over Time');
 xlabel('Time (s)');
 ylabel('phi dot (rad/sec)');
 grid on;
+
 
 %% Plot dfn dft and dphi_dot in seperate plots
 
@@ -477,8 +494,6 @@ ylabel('Torque (Nm)');
 legend('Wrench', 'Ground Friction');
 grid on;
 
-sgtitle('Wrench and Ground Friction Forces and Torque over Time');
-
 %% Plots for debug
 
 figure;
@@ -486,5 +501,16 @@ plot(time(1:length(time)-1), j, 'LineWidth', 2);
 title('binary debug');
 xlabel('Time (s)');
 ylabel('on-off mode');
-legend('Ground Friction');
+grid on;
+
+%% Plots for solver times
+
+figure;
+plot(mpc_activation, solver_times, 'LineWidth', 2);
+hold on;
+plot(mpc_activation, gurobi_solve_times, 'LineWidth', 2);
+title('Solver time');
+xlabel('MPC activation number');
+ylabel('Time (s)');
+legend('Time By Matlab', 'Time By Gurobi');
 grid on;
