@@ -89,8 +89,8 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-% x(:,1) = [trajectory_radius+0.03, -0.01, 0, phi_star(1)];
-x(:,1) = [0.03, -0.03, 0, phi_star(1)];
+x(:,1) = [trajectory_radius+0.03, -0.01, 0, phi_star(1)];
+% x(:,1) = [0.03, -0.03, 0, phi_star(1)];
 x_start = [];
 
 % MPC controller tunable parameters
@@ -158,11 +158,12 @@ for i = 1:floor(duration/timestep)
     x_ddot(1:3, i+1) = diag([mass mass I_object(3,3)]) \ (-gr_frict + w);
     x_dot(1:3, i+1) = x_dot(1:3, i) + x_ddot(1:3, i+1) .* timestep;
     x(1:3, i+1) = x(1:3, i) + x_dot(1:3, i+1) .* timestep;
+    
+    v_pc(:,i) = calculate_robot_velocity(L, x(4, i), len, radius, u(:,i), x(3, i));
 
     time(i+1) = time(i) + timestep;
     dp(:,i+1) = [x_dot(1, i+1); x_dot(2, i+1); x_dot(3, i+1)];
     
-
 end
 
 %% Present calculation metrics
@@ -513,4 +514,31 @@ title('Solver time');
 xlabel('MPC activation number');
 ylabel('Time (s)');
 legend('Time By Matlab', 'Time By Gurobi');
+grid on;
+
+%% Plot the velovity of the robitic arm over time over time
+
+figure;
+% First subplot for force on x-axis
+subplot(3,1,1);
+plot(time(1:end-1), v_pc(1,:), 'LineWidth', 2);
+title('Velocity of robot on x-axis over time');
+xlabel('Time (s)');
+ylabel('Velocity (m/s)');
+grid on;
+
+% Second subplot for force on y-axis
+subplot(3,1,2);
+plot(time(1:end-1), v_pc(2,:), 'LineWidth', 2);
+title('Velocity of robot on y-axis over time');
+xlabel('Time (s)');
+ylabel('Velocity (m/s)');
+grid on;
+
+% Second subplot for force on y-axis
+subplot(3,1,3);
+plot(time(1:end-1), sqrt(v_pc(1,:).^2 + v_pc(2,:).^2), 'LineWidth', 2);
+title('Norm of velocity of robot on y-axis over time');
+xlabel('Time (s)');
+ylabel('Velocity (m/s)');
 grid on;
