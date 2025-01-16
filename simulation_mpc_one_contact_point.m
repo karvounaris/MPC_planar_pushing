@@ -33,7 +33,7 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-duration = 6;
+duration = 4;
 x_0 = 0;
 x_f = 0.04 * duration;
 y_0 = 0;
@@ -89,8 +89,8 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-x(:,1) = [trajectory_radius+0.03, -0.01, 0, phi_star(1)];
-% x(:,1) = [0.03, -0.03, 0, phi_star(1)];
+% x(:,1) = [trajectory_radius+0.03, -0.01, 0, phi_star(1)];
+x(:,1) = [0.03, -0.03, 0, phi_star(1)];
 x_start = [];
 
 % MPC controller tunable parameters
@@ -159,7 +159,7 @@ for i = 1:floor(duration/timestep)
     x_dot(1:3, i+1) = x_dot(1:3, i) + x_ddot(1:3, i+1) .* timestep;
     x(1:3, i+1) = x(1:3, i) + x_dot(1:3, i+1) .* timestep;
     
-    v_pc(:,i) = calculate_robot_velocity(L, x(4, i), len, radius, u(:,i), x(3, i));
+    v_pc(:,i) = calculate_robot_velocity(L, x(:, i), len, radius, u(:,i), x_dot(3,i));
 
     time(i+1) = time(i) + timestep;
     dp(:,i+1) = [x_dot(1, i+1); x_dot(2, i+1); x_dot(3, i+1)];
