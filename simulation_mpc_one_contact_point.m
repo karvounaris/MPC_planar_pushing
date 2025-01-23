@@ -49,14 +49,14 @@ v_constant = 0.055;
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         fifth_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
-% [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~] = ...
-%                         constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
+[x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~] = ...
+                        constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         quarter_circle_trajectory(duration, trajectory_radius, timestep);
 
-[x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~, duration] = ...
-                    constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant, timestep);
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~, duration] = ...
+%                     constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                           semi_circle_trajectory(duration, trajectory_radius, timestep);
@@ -71,36 +71,38 @@ v_constant = 0.055;
 %                     constant_velocity_s_shape_trajectory(trajectory_radius, v_constant, timestep);
 
 % NOTE: change the initial guess that depends on the trajectory selected
-% [fn_star, ft_star, phi_star_dot, phi_star, ~] = ...
-%                           calculate_u_star_one_contact_point(L, x_star_dot, y_star_dot, theta_star, ...
-%                           theta_star_dot, len, radius, timestep, duration);
+[fn_star, ft_star, phi_star_dot, phi_star, ~] = ...
+                          calculate_u_star_one_contact_point(L, x_star_dot, y_star_dot, theta_star, ...
+                          theta_star_dot, len, radius, timestep, duration);
 
 x_star = [x_star; y_star; theta_star; phi_star];
-% u_star = [fn_star; ft_star; phi_star_dot];
+u_star = [fn_star; ft_star; phi_star_dot];
 % Define the extension for x_star and u_star
 x_star_extension = repmat(x_star(:, end), 1, N*timestep_parameter); % Repeat last column of x_star N times
-% u_star_extension = zeros(size(u_star, 1), N*timestep_parameter);    % Create zero matrix for u_star
+u_star_extension = zeros(size(u_star, 1), N*timestep_parameter);    % Create zero matrix for u_star
 % Append the extensions to x_star and u_star
 x_star = [x_star, x_star_extension];
-% u_star = [u_star, u_star_extension];
-u_star = zeros(size(x_star(1:3, :)));
+u_star = [u_star, u_star_extension];
+% u_star = zeros(size(x_star(1:3, :)));
 
 % System's parameters initialization
 x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-% x(:,1) = [trajectory_radius+0.03, -0.01, 0, phi_star(1)];
+% x(:,1) = [trajectory_radius+0.03, -0.03, 0, phi_star(1)];
 x(:,1) = [0.03, -0.03, 0, phi_star(1)];
 mpc_output = [];
 
-% MPC controller tunable parameters
-% Q = 60 * diag([4, 4, 0.1, 0]);      % State cost matrix
-% QN = 24000 * diag([5, 5, 0.1, 0]);   % Terminal state cost matrix
-% R = 0.01 * diag([1, 1, 0.1]);          % Input cost matrix
-Q = 100 * diag([10, 10, 0.1, 0]);      % State cost matrix
-QN = 35000 * diag([25, 25, 0.1, 0]);   % Terminal state cost matrix
+% % MPC controller tunable parameters straight line
+Q = 60 * diag([4, 4, 0.1, 0]);      % State cost matrix
+QN = 26000 * diag([5, 5, 0.1, 0]);   % Terminal state cost matrix
 R = 0.01 * diag([1, 1, 0.1]);          % Input cost matrix
+
+% MPC controller tunable parameters all the others
+% Q = 60 * diag([4, 4, 0.1, 0]);      % State cost matrix
+% QN = 26000 * diag([4, 4, 0.1, 0]);   % Terminal state cost matrix
+% R = 0.01 * diag([0.1, 0.1, 0.1]);          % Input cost matrix
 %% Run simulation
 
 % Set the control input
