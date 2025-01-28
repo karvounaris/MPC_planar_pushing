@@ -1,5 +1,32 @@
-function [x_star_mpc, u_star_mpc] = create_mpc_star_input(x_star, u_star, ...
-                                    N, iteration, timestep_parameter)
+function [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_input(x_star, u_star, ...
+                                    N, iteration, timestep_parameter, delayms,...
+                                    u, x, len, radius, dp, timestep, L, mass, I_object, flag)
+    dx_mpc = [0; 0; 0];
+    if iteration ~= 1 && flag == true
+        for i = 1:delayms/timestep
+    
+            w = calculate_motion_model_parameters(u, x(3,i), len, radius, x(4,i));
+            ground_friction_parameter = 1;
+            [gr_frict, ~] = calculate_friction_with_ground(L, dp(:,i), ground_friction_parameter);
+        
+            ground_friction(:,i) = -gr_frict;
+            wrench(:,i) = w;
+        
+            x_dot(4,i+1) = u(3,1);
+            x(4, i+1) = x(4, i) + x_dot(4, i+1) * timestep;
+        
+            % x_ddot(1:3, i+1) = inv(diag([mass mass I_object(3,3)])) * (-gr_frict + w);
+            x_ddot(1:3, i+1) = diag([mass mass I_object(3,3)]) \ (-gr_frict + w);
+            x_dot(1:3, i+1) = x_dot(1:3, i) + x_ddot(1:3, i+1) .* timestep;
+            x(1:3, i+1) = x(1:3, i) + x_dot(1:3, i+1) .* timestep;
+    
+            dp(:,i+1) = [x_dot(1, i+1); x_dot(2, i+1); x_dot(3, i+1)];
+        end
+    
+        dx_mpc = x(:, end) - x_star(:, iteration+delayms/timestep);
+        iteration = iteration + delayms/timestep;
+    end
+
     for j = 1:N+1
         x_star_mpc(:,j) = x_star(:, iteration + (j-1)*timestep_parameter);
         u_star_mpc(:,j) = u_star(:, iteration + (j-1)*timestep_parameter);
