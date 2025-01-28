@@ -33,12 +33,13 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-duration = 5;
+duration = 6;
 x_0 = 0;
 x_f = 0.04 * duration;
 y_0 = 0;
 y_f = 0.04 * duration;
 
+delayms = 0;
 timestep = 0.001;
 mpc_timestep = 0.03;
 timestep_parameter = mpc_timestep/timestep;
@@ -83,6 +84,8 @@ u_star_extension = zeros(size(u_star, 1), N*timestep_parameter);    % Create zer
 % Append the extensions to x_star and u_star
 x_star = [x_star, x_star_extension];
 u_star = [u_star, u_star_extension];
+% u_star(1, :) = 22 * ones(size(x_star(1, :)));
+% u_star(2:3, :) = zeros(size(x_star(2:3, :)));
 % u_star = zeros(size(x_star(1:3, :)));
 
 % System's parameters initialization
@@ -94,21 +97,22 @@ u = [0; 0; 0];
 x(:,1) = [0.03, -0.03, 0, phi_star(1)];
 mpc_output = [];
 
-% % MPC controller tunable parameters straight line
-Q = 60 * diag([4, 4, 0.1, 0]);      % State cost matrix
-QN = 26000 * diag([5, 5, 0.1, 0]);   % Terminal state cost matrix
-R = 0.01 * diag([1, 1, 0.1]);          % Input cost matrix
-
 % MPC controller tunable parameters all the others
-% Q = 60 * diag([4, 4, 0.1, 0]);      % State cost matrix
-% QN = 26000 * diag([4, 4, 0.1, 0]);   % Terminal state cost matrix
-% R = 0.01 * diag([0.1, 0.1, 0.1]);          % Input cost matrix
+Q = 120 * diag([9, 9, 0.1, 0]);      % State cost matrix
+QN = 25000 * diag([10, 10, 0.1, 0]);   % Terminal state cost matrix
+R = 0.05 * diag([1, 1, 0.1]);          % Input cost matrix
+
+% % MPC controller tunable parameters all the others
+% Q = 300 * diag([12, 12, 0.1, 0]);      % State cost matrix
+% QN = 30000 * diag([13, 13, 0.1, 0]);   % Terminal state cost matrix
+% R = 0.05 * diag([1, 1, 0.1]);          % Input cost matrix
 %% Run simulation
 
 % Set the control input
 dp = [0; 0; 0];
 time = 0;
 mpc_timestamps = 0;
+control_frequency = 0.06;
 
 ground_friction = zeros(3,1);
 is_start = 1;
@@ -116,9 +120,11 @@ is_start = 1;
 for i = 1:floor(duration/timestep)
     dx(:,i) = x(:,i) - x_star(:,i);
     
-    if (mod(i*timestep,mpc_timestep) == 0) || i == 1
-        [x_star_mpc, u_star_mpc] = create_mpc_star_input(x_star, u_star, ...
-                                    N, i, timestep_parameter);
+    if (mod(i*timestep, control_frequency) == 0) || i == 1
+        flag = false;
+        [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_input(x_star, u_star, ...
+                                    N, i, timestep_parameter, delayms,...
+                                    u, x, len, radius, dp, timestep, L, mass, I_object, flag);
         tic;
         [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star_mpc, u_star_mpc, dx(:,i), mu, L, ...
                                            radius, len, N, mpc_timestep,  Q, QN, R, mpc_output, is_start);
@@ -126,20 +132,17 @@ for i = 1:floor(duration/timestep)
             solver_times(i) = toc;
             gurobi_solve_times(i) = gurobi_solve_time;
         else
-            solver_times(round(i * timestep / mpc_timestep)+1) = toc;
-            gurobi_solve_times(round(i * timestep / mpc_timestep)+1) = gurobi_solve_time;
-            mpc_timestamps(round(i * timestep / mpc_timestep)+1) = mpc_timestamps(round(i * timestep / mpc_timestep)) + mpc_timestep;
+            solver_times(round(i * timestep / control_frequency)+1) = toc;
+            gurobi_solve_times(round(i * timestep / control_frequency)+1) = gurobi_solve_time;
+            mpc_timestamps(round(i * timestep / control_frequency)+1) = mpc_timestamps(round(i * timestep / control_frequency)) + control_frequency;
         end
         is_start = 0;
         fprintf('Time is: %g\n', time(i));
-        fprintf('Error is: %2.4f %2.4f %2.4f %2.4f\n', dx(1,i), dx(2,i), dx(3,i), dx(4,i));
+        fprintf('Error is: %2.4f %2.4f %2.4f %2.4f %2.4f\n', dx(1,i), dx(2,i), dx(3,i), dx(4,i), sqrt(dx(1,i)^2 + dx(2,i)^2));
         % fprintf('Velocity is: %2.4f %2.4f %2.4f\n', dp(1,i), dp(2,i), dp(3,i));
         du(:,i) = mpc_output(4*(N+1)+1 : 4*(N+1)+3);
         z(:,i) = mpc_output(4*(N+1)+3*N+1 : 4*(N+1)+3*N+3);
         u(:,i) = du(:,i) + u_star(:,i);
-        % du(:,i) = mpc_output(4*((N/5+1)+1)+1 : 4*((N/5+1)+1)+3);
-        % z(:,i) = mpc_output(4*((N/5+1)+1)+3*(N/5+1)+1 : 4*((N/5+1)+1)+3*(N/5+1)+3);
-        % u(:,i) = du(:,i) + u_star(:,i);
     else
         u(:,i) = u(:,i-1);
         z(:,i) = z(:,i-1);
