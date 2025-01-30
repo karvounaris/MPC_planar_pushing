@@ -240,7 +240,7 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
         end
 
         % [Ai, Bi] = linearize_system(x_star(:, i), u_star(:, i), L, radius, len);
-        [A, B] = jacobian_function(x_star(:, i), u_star(:, i), L, radius, len);
+        [A, B] = jacobian_function_system_linearization(x_star(:, i), u_star(:, i), L, radius, len);
 
         % Dynamics constraints at each step
         sys_c = ss(A, B, eye(size(A)), zeros(size(B))); % Continuous system
@@ -340,8 +340,8 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
     model.ub =  inf * ones(4 * (N+1), 1);
 
     % Define bounds for inputs (u = [fn, ft, phi_dot])
-    lb_u = [-100; -100; -10];
-    ub_u = [ 100;  100;  10];
+    lb_u = [-100; -100; -5];
+    ub_u = [ 100;  100;  5];
 
     % Repeat input bounds for N steps
     model.lb = [model.lb; repmat(lb_u, N, 1)];

@@ -33,7 +33,7 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-duration = 6;
+duration = 4;
 x_0 = 0;
 x_f = 0.04 * duration;
 y_0 = 0;
@@ -95,11 +95,13 @@ x_ddot = [0; 0; 0];
 u = [0; 0; 0];
 % x(:,1) = [trajectory_radius+0.03, -0.03, 0, phi_star(1)];
 x(:,1) = [0.03, -0.03, 0, phi_star(1)];
+[x_c, y_c, ~, n_c, t_c] = calculate_r_c(x(4,1), len, radius);
+x_pc_world(:,1) = x(1:2, 1) + [cos(x(3, 1)) -sin(x(3, 1)); sin(x(3, 1)) cos(x(3, 1))] *[x_c; y_c];
 mpc_output = [];
 
 % MPC controller tunable parameters all the others
-Q = 120 * diag([9, 9, 0.1, 0]);      % State cost matrix
-QN = 25000 * diag([10, 10, 0.1, 0]);   % Terminal state cost matrix
+Q = 160 * diag([8, 8, 0.1, 0]);      % State cost matrix
+QN = 28000 * diag([9, 9, 0.1, 0]);   % Terminal state cost matrix
 R = 0.05 * diag([1, 1, 0.1]);          % Input cost matrix
 
 % % MPC controller tunable parameters all the others
@@ -112,7 +114,7 @@ R = 0.05 * diag([1, 1, 0.1]);          % Input cost matrix
 dp = [0; 0; 0];
 time = 0;
 mpc_timestamps = 0;
-control_frequency = 0.06;
+control_frequency = 0.03;
 
 ground_friction = zeros(3,1);
 is_start = 1;
@@ -170,7 +172,8 @@ for i = 1:floor(duration/timestep)
     x_dot(1:3, i+1) = x_dot(1:3, i) + x_ddot(1:3, i+1) .* timestep;
     x(1:3, i+1) = x(1:3, i) + x_dot(1:3, i+1) .* timestep;
     
-    v_pc(:,i) = calculate_robot_velocity(L, x(:, i), len, radius, u(:,i), x_dot(3,i));
+    [v_pc(:,i), v_pc_world(:,i)] = calculate_robot_velocity(L, x(:, i), len, radius, u(:,i));
+    x_pc_world(:,i+1) = x_pc_world(:,i) + v_pc_world(:,i)*timestep;
 
     time(i+1) = time(i) + timestep;
     dp(:,i+1) = [x_dot(1, i+1); x_dot(2, i+1); x_dot(3, i+1)];
@@ -237,15 +240,13 @@ plot(contact_x(idx_0), contact_y(idx_0), 'go', 'MarkerSize', 2);
 % plot(contact_x, contact_y, 'r-', 'LineWidth', 1.5, 'DisplayName', 'Contact Path');
 
 % Plot x_star and y_star trajectory
-plot(x_star(1,:), x_star(2,:), 'k-', 'LineWidth', 2); % x_star trajectory in black
+plot(x_star(1,:), x_star(2,:), 'k-', 'LineWidth', 2, 'DisplayName', 'Desired trajectory'); % x_star trajectory in black
 plot(x_star(1,1), x_star(2,1), 'go', 'MarkerFaceColor', 'g'); % Start point of x_star in green
 plot(x_star(1,end), x_star(2,end), 'yo', 'MarkerFaceColor', 'y'); % End point of x_star in yellow
 
 legend([capsule_shape_handle; findobj(gca, 'DisplayName', 'Trajectory'); ...
-        findobj(gca, 'DisplayName', 'Start'); findobj(gca, 'DisplayName', 'End')], ...
+        findobj(gca, 'DisplayName', 'Desired trajectory'); findobj(gca, 'DisplayName', 'Start'); findobj(gca, 'DisplayName', 'End')], ...
         'Location', 'Best');
-        % findobj(gca, 'DisplayName', 'Contact Path')], ...
-        % 'Location', 'Best');
 
 hold off;
 
@@ -495,7 +496,7 @@ ylabel('Torque (Nm)');
 legend('Wrench', 'Ground Friction');
 grid on;
 
-% Fourth subplot for torque on z-axis
+% Fourth subplot for norm of force
 subplot(4,1,4);
 plot(time(1:end-1), sqrt(wrench(1,:).^2 + wrench(2,:).^2 + wrench(3,:).^2), 'LineWidth', 2);
 hold on;
@@ -527,29 +528,79 @@ ylabel('Time (s)');
 legend('Time By Matlab', 'Time By Gurobi');
 grid on;
 
-%% Plot the velovity of the robitic arm over time over time
+%% Plot the velovity of the robitic arm over time
 
 figure;
-% First subplot for force on x-axis
+% First subplot for velocity on x-axis world frame and object frame
 subplot(3,1,1);
+plot(time(1:end-1), v_pc_world(1,:), 'LineWidth', 2);
+hold on;
 plot(time(1:end-1), v_pc(1,:), 'LineWidth', 2);
 title('Velocity of robot on x-axis over time');
 xlabel('Time (s)');
 ylabel('Velocity (m/s)');
+legend('Velocity x-axis world frame', 'Velocity x-axis object frame');
 grid on;
 
-% Second subplot for force on y-axis
+% Second subplot for velocity on y-axis world frame and object frame
 subplot(3,1,2);
+plot(time(1:end-1), v_pc_world(2,:), 'LineWidth', 2);
+hold on;
 plot(time(1:end-1), v_pc(2,:), 'LineWidth', 2);
 title('Velocity of robot on y-axis over time');
 xlabel('Time (s)');
 ylabel('Velocity (m/s)');
+legend('Velocity y-axis world frame', 'Velocity y-axis object frame');
 grid on;
 
-% Second subplot for force on y-axis
+% Second subplot for norm velocity world frame and object frame
 subplot(3,1,3);
-plot(time(1:end-1), sqrt(v_pc(1,:).^2 + v_pc(2,:).^2), 'LineWidth', 2);
-title('Norm of velocity of robot on y-axis over time');
+plot(time(1:end-1), sqrt(v_pc_world(1,:).^2 + v_pc_world(2,:).^2), 'LineWidth', 2);
+title('Norm of velocity of robot over time world frame');
 xlabel('Time (s)');
 ylabel('Velocity (m/s)');
+grid on;
+
+%% Plot the position of the robitic arm over time
+
+figure;
+% First subplot for potistion on x-axis world frame
+subplot(3,1,1);
+plot(time(1:end), x_pc_world(1,:), 'LineWidth', 2);
+hold on;
+plot(time(1:end), x(1,:), 'LineWidth', 2);
+title('Position of robot on x-axis over time');
+xlabel('Time (s)');
+ylabel('Position (m)');
+legend('positions contact point x-axis', 'positions object x-axis');
+grid on;
+
+% Second subplot for potistion on y-axis world frame
+subplot(3,1,2);
+plot(time(1:end), x_pc_world(2,:), 'LineWidth', 2);
+hold on;
+plot(time(1:end), x(2,:), 'LineWidth', 2);
+title('Position of robot on y-axis over time');
+xlabel('Time (s)');
+ylabel('Position (m)');
+legend('positions contact point y-axis', 'positions object y-axis');
+grid on;
+
+% Third subplot for norm of potistion world frame
+subplot(3,1,3);
+plot(x_pc_world(1,:), x_pc_world(2,:), 'LineWidth', 2);
+title('2D plot of position of robot over time');
+xlabel('x_c (m)');
+ylabel('y_c (m)');
+grid on;
+
+%% extra
+figure;
+plot(time(1:end), x(1,:)-x_pc_world(1,:), 'LineWidth', 2);
+hold on;
+plot(time(1:end), x(2,:)-x_pc_world(2,:), 'LineWidth', 2);
+title('Difference in position of robot and object over time');
+xlabel('Time (s)');
+ylabel('Position (m)');
+legend('positions difference x-axis', 'positions difference y-axis');
 grid on;
