@@ -47,5 +47,7 @@ elseif phi_val >= 5*pi/4 && phi_val < 7*pi/4
 end
 
 % Calculate the Jacobians of f_sym with respect to x and u
-A = jacobian(f_sym, vec)
+A = jacobian(f_sym, vec);
+
+
 

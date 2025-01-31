@@ -304,13 +304,24 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
                              zeros(1, 3*(j-1)), 0, 0, M, zeros(1, 3*((N/5+1)-j))];
         bineq_slide_right3 = u_star(3,i) - eps + M;
 
+        % % Aditional robot velocity constraints
+        % Gc_vel_lin = jacobian_function_velocity_linearization(x_star(:, i), u_star(:, i), L, radius, len);
+        % Aineq_vel_lin1 = [zeros(1,4*(i-1)), 0, 0, 0, Gc_vel_lin(1,1), zeros(1, (N+1-i)*4), zeros(1, (i-1)*3), ...
+        %                   Gc_vel_lin(1, 2:4), zeros(1, (N-i)*3), zeros(1, 3*(N/5+1))];
+        % bineq_vel_lin1 = -Gc_vel_lin(1, :) * [x_star(4,i); u_star(1,i); u_star(2,i); u_star(3,i)] + 0.3;
+        % Aineq_vel_lin2 = [zeros(1,4*(i-1)), 0, 0, 0, Gc_vel_lin(2,1), zeros(1, (N+1-i)*4), zeros(1, (i-1)*3), ...
+        %                   Gc_vel_lin(2, 2:4), zeros(1, (N-i)*3), zeros(1, 3*(N/5+1))];
+        % bineq_vel_lin2 = -Gc_vel_lin(2, :) * [x_star(4,i); u_star(1,i); u_star(2,i); u_star(3,i)] + 0.3;
+
         % Add mode constraints to inequality constraints
         Aineq = [Aineq; Aineq_friction_cone1; Aineq_friction_cone2; Aineq_friction_cone3; Aineq_stick_1; ...
                  Aineq_stick_2; Aineq_slide_left1; Aineq_slide_left2; Aineq_slide_left3; ...
-                 Aineq_slide_right1; Aineq_slide_right2; Aineq_slide_right3];
+                 Aineq_slide_right1; Aineq_slide_right2; Aineq_slide_right3]; ...
+                 % Aineq_vel_lin1; Aineq_vel_lin2];
         bineq = [bineq; bineq_friction_cone1; bineq_friction_cone2; bineq_friction_cone3; ...
                  bineq_stick_1; bineq_stick_2; bineq_slide_left1; bineq_slide_left2; bineq_slide_left3; ...
-                 bineq_slide_right1; bineq_slide_right2; bineq_slide_right3];
+                 bineq_slide_right1; bineq_slide_right2; bineq_slide_right3]; ...
+                 % bineq_vel_lin1; bineq_vel_lin2];
     end
 
     % Initialize block diagonal components for model.Q
@@ -320,11 +331,11 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
 
     % Define W for each step and populate W_blocks
     for i = 1:(N/5+1)
-        if i == 1 || i > N/5-2
+        if i == 1 || i > N/5-1
             W_blocks{i} = 0.1 * diag([0, 0, 0]);
         elseif i == 2
             W_blocks{i} = 0.1 * diag([3, 3, 3]);
-        elseif i > 2 && i <= N/5-2
+        elseif i > 2 && i <= N/5-1
             W_blocks{i} = 0.1 * diag([1, 1, 1]);
         end
     end
@@ -340,8 +351,8 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
     model.ub =  inf * ones(4 * (N+1), 1);
 
     % Define bounds for inputs (u = [fn, ft, phi_dot])
-    lb_u = [-100; -100; -5];
-    ub_u = [ 100;  100;  5];
+    lb_u = [-100; -100; -2];
+    ub_u = [ 100;  100;  2];
 
     % Repeat input bounds for N steps
     model.lb = [model.lb; repmat(lb_u, N, 1)];
@@ -364,13 +375,13 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
     % Additional Gurobi parameters
     % params.outputflag = 1;
     params.outputflag = 0;
-    params.IntFeasTol = 1e-9;
-    params.MIPGap = 0;
-    params.OptimalityTol = 1e-9;
-    params.FeasibilityTol = 1e-9;
-    params.Heuristics = 0.1;
+    % params.IntFeasTol = 1e-9;
+    % params.MIPGap = 0;
+    % params.OptimalityTol = 1e-9;
+    % params.FeasibilityTol = 1e-9;
+    % params.Heuristics = 0.1;
     params.TimeLimit = 300;
-    params.MIPFocus = 2;
+    % params.MIPFocus = 2;
 
     % Solve the problem with Gurobi
     result = gurobi(model, params);

@@ -36,14 +36,16 @@ L = [1/(mu_ground*F_N)^2 0 0;
 duration = 4;
 x_0 = 0;
 x_f = 0.04 * duration;
+% x_f = 0;
 y_0 = 0;
 y_f = 0.04 * duration;
 
 delayms = 0;
 timestep = 0.001;
-mpc_timestep = 0.03;
+mpc_timestep = 0.04;
+control_frequency = 0.04;
 timestep_parameter = mpc_timestep/timestep;
-N = 35;
+N = 25;
 trajectory_radius = 0.2;
 v_constant = 0.055;
 
@@ -85,7 +87,7 @@ u_star_extension = zeros(size(u_star, 1), N*timestep_parameter);    % Create zer
 x_star = [x_star, x_star_extension];
 u_star = [u_star, u_star_extension];
 % u_star(1, :) = 22 * ones(size(x_star(1, :)));
-% u_star(2:3, :) = zeros(size(x_star(2:3, :)));
+% u_star(2:3, :) = zeros(size(x_star(2:3, :)));-
 % u_star = zeros(size(x_star(1:3, :)));
 
 % System's parameters initialization
@@ -99,22 +101,21 @@ x(:,1) = [0.03, -0.03, 0, phi_star(1)];
 x_pc_world(:,1) = x(1:2, 1) + [cos(x(3, 1)) -sin(x(3, 1)); sin(x(3, 1)) cos(x(3, 1))] *[x_c; y_c];
 mpc_output = [];
 
-% MPC controller tunable parameters all the others
-Q = 160 * diag([8, 8, 0.1, 0]);      % State cost matrix
-QN = 28000 * diag([9, 9, 0.1, 0]);   % Terminal state cost matrix
-R = 0.05 * diag([1, 1, 0.1]);          % Input cost matrix
-
-% % MPC controller tunable parameters all the others
-% Q = 300 * diag([12, 12, 0.1, 0]);      % State cost matrix
-% QN = 30000 * diag([13, 13, 0.1, 0]);   % Terminal state cost matrix
+% MPC controller tunable parameters
+% Q = 160 * diag([8, 8, 0.1, 0]);      % State cost matrix
+% QN = 28000 * diag([9, 9, 0.1, 0]);   % Terminal state cost matrix
 % R = 0.05 * diag([1, 1, 0.1]);          % Input cost matrix
+
+% MPC controller tunable parameters
+Q = 100 * diag([5, 5, 0.1, 0]);      % State cost matrix
+QN = 20000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
+R = 0.05 * diag([1, 1, 0.1]);          % Input cost matrix
 %% Run simulation
 
 % Set the control input
 dp = [0; 0; 0];
 time = 0;
 mpc_timestamps = 0;
-control_frequency = 0.03;
 
 ground_friction = zeros(3,1);
 is_start = 1;
@@ -123,10 +124,10 @@ for i = 1:floor(duration/timestep)
     dx(:,i) = x(:,i) - x_star(:,i);
     
     if (mod(i*timestep, control_frequency) == 0) || i == 1
-        flag = false;
+        simulation_type_flag = false;
         [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_input(x_star, u_star, ...
-                                    N, i, timestep_parameter, delayms,...
-                                    u, x, len, radius, dp, timestep, L, mass, I_object, flag);
+                                    N, i, timestep_parameter, control_frequency,...
+                                    u, x, len, radius, dp, timestep, L, mass, I_object, simulation_type_flag);
         tic;
         [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star_mpc, u_star_mpc, dx(:,i), mu, L, ...
                                            radius, len, N, mpc_timestep,  Q, QN, R, mpc_output, is_start);
@@ -172,7 +173,7 @@ for i = 1:floor(duration/timestep)
     x_dot(1:3, i+1) = x_dot(1:3, i) + x_ddot(1:3, i+1) .* timestep;
     x(1:3, i+1) = x(1:3, i) + x_dot(1:3, i+1) .* timestep;
     
-    [v_pc(:,i), v_pc_world(:,i)] = calculate_robot_velocity(L, x(:, i), len, radius, u(:,i));
+    [v_pc_body(:,i), v_pc_world(:,i)] = calculate_robot_velocity(L, x(:, i), len, radius, u(:,i));
     x_pc_world(:,i+1) = x_pc_world(:,i) + v_pc_world(:,i)*timestep;
 
     time(i+1) = time(i) + timestep;
@@ -212,8 +213,8 @@ for i = 1:round(length(x(1,:))/10):length(x(1,:))
     end
 end
 
-contact_x = [];
-contact_y = [];
+contact_x_world = [];
+contact_y_world = [];
 
 % Loop to plot contact points and unit vectors separately
 for i = 1:length(x(1,:))
@@ -222,9 +223,15 @@ for i = 1:length(x(1,:))
     R = [cos(x(3,i)), -sin(x(3,i)); sin(x(3,i)), cos(x(3,i))];
     contact_point_global = R * [x_c; y_c] + [x(1,i); x(2,i)];
 
-    contact_x = [contact_x; contact_point_global(1)];
-    contact_y = [contact_y; contact_point_global(2)];
+    contact_x_world = [contact_x_world; contact_point_global(1)];
+    contact_y_world = [contact_y_world; contact_point_global(2)];
 
+    if i ~=1
+        contact_x_dot_world(i) = (contact_x_world(i) - contact_x_world(i-1))/timestep;
+        contact_y_dot_world(i) = (contact_y_world(i) - contact_y_world(i-1))/timestep;
+        contact_x_dot_body(i) = cos(x(3)) * contact_x_dot_world(i) - sin(x(3)) * contact_y_dot_world(i);
+        contact_y_dot_body(i) = sin(x(3)) * contact_x_dot_world(i) + cos(x(3)) * contact_y_dot_world(i);
+    end
 end
 
 % Logical indices for j == 1 and j == 0
@@ -232,10 +239,10 @@ idx_1 = (j == 1);
 idx_0 = (j == 0);
 
 % Plot for j == 1 (red circles)
-plot(contact_x(idx_1), contact_y(idx_1), 'ro', 'MarkerSize', 2);
+plot(contact_x_world(idx_1), contact_y_world(idx_1), 'ro', 'MarkerSize', 2);
 
 % Plot for j == 0 (green circles)
-plot(contact_x(idx_0), contact_y(idx_0), 'go', 'MarkerSize', 2);
+plot(contact_x_world(idx_0), contact_y_world(idx_0), 'go', 'MarkerSize', 2);
 
 % plot(contact_x, contact_y, 'r-', 'LineWidth', 1.5, 'DisplayName', 'Contact Path');
 
@@ -358,6 +365,32 @@ title('Norm of dx and dy over time');
 xlabel('Time (s)');
 ylabel('Norm of dx and dy (m)');
 grid on;
+
+figure;
+% First subplot for dx over time
+subplot(3, 1, 1);
+plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2), 'LineWidth', 2);
+title('Norm dx dy');
+xlabel('Time (s)');
+ylabel('dx-dy (m)');
+grid on;
+
+% Second subplot for dy over time
+subplot(3, 1, 2);
+plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2 + dx(3,:).^2), 'LineWidth', 2);
+title('Norm dx dy dtheta');
+xlabel('Time (s)');
+ylabel('Error');
+grid on;
+
+% Third subplot for dtheta over time
+subplot(3, 1, 3);
+plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2 + dx(3,:).^2 + dx(4,:).^2), 'LineWidth', 2);
+title('Norm dx dy dtheta dphi');
+xlabel('Time (s)');
+ylabel('Error');
+grid on;
+
 
 %% Plot fn ft and phi_dot in seperate plots
 
@@ -528,37 +561,76 @@ ylabel('Time (s)');
 legend('Time By Matlab', 'Time By Gurobi');
 grid on;
 
-%% Plot the velovity of the robitic arm over time
+%% Plot the velocity of the robitic arm world frame
 
 figure;
 % First subplot for velocity on x-axis world frame and object frame
 subplot(3,1,1);
 plot(time(1:end-1), v_pc_world(1,:), 'LineWidth', 2);
 hold on;
-plot(time(1:end-1), v_pc(1,:), 'LineWidth', 2);
-title('Velocity of robot on x-axis over time');
+plot(time(1:end-1), contact_x_dot_world(2:end), 'LineWidth', 2);
+title('Velocity of robot on x-axis world frame');
 xlabel('Time (s)');
 ylabel('Velocity (m/s)');
-legend('Velocity x-axis world frame', 'Velocity x-axis object frame');
+legend('Velocity x-axis robot', 'Velocity x-axis contact point');
 grid on;
 
 % Second subplot for velocity on y-axis world frame and object frame
 subplot(3,1,2);
 plot(time(1:end-1), v_pc_world(2,:), 'LineWidth', 2);
 hold on;
-plot(time(1:end-1), v_pc(2,:), 'LineWidth', 2);
-title('Velocity of robot on y-axis over time');
+plot(time(1:end-1), contact_y_dot_world(2:end), 'LineWidth', 2);
+title('Velocity of robot on y-axis world frame');
 xlabel('Time (s)');
 ylabel('Velocity (m/s)');
-legend('Velocity y-axis world frame', 'Velocity y-axis object frame');
+legend('Velocity y-axis robot', 'Velocity y-axis contact point');
 grid on;
 
 % Second subplot for norm velocity world frame and object frame
 subplot(3,1,3);
 plot(time(1:end-1), sqrt(v_pc_world(1,:).^2 + v_pc_world(2,:).^2), 'LineWidth', 2);
-title('Norm of velocity of robot over time world frame');
+hold on;
+plot(time(1:end-1), sqrt(contact_x_dot_world(2:end).^2 + contact_y_dot_world(2:end).^2), 'LineWidth', 2);
+title('Norm of velocity of robot and contact point world frame');
 xlabel('Time (s)');
 ylabel('Velocity (m/s)');
+legend('Norm y-axis robot', 'Norm y-axis contact point');
+grid on;
+
+%% Plot the velocity of the robitic arm body frame
+
+figure;
+% First subplot for velocity on x-axis world frame and object frame
+subplot(3,1,1);
+plot(time(1:end-1), v_pc_body(1,:), 'LineWidth', 2);
+hold on;
+plot(time(1:end-1), contact_x_dot_body(2:end), 'LineWidth', 2);
+title('Velocity of robot on x-axis body frame');
+xlabel('Time (s)');
+ylabel('Velocity (m/s)');
+legend('Velocity x-axis robot', 'Velocity x-axis contact point');
+grid on;
+
+% Second subplot for velocity on y-axis world frame and object frame
+subplot(3,1,2);
+plot(time(1:end-1), v_pc_body(2,:), 'LineWidth', 2);
+hold on;
+plot(time(1:end-1), contact_y_dot_body(2:end), 'LineWidth', 2);
+title('Velocity of robot on y-axis body frame');
+xlabel('Time (s)');
+ylabel('Velocity (m/s)');
+legend('Velocity y-axis robot', 'Velocity y-axis contact point');
+grid on;
+
+% Second subplot for norm velocity world frame and object frame
+subplot(3,1,3);
+plot(time(1:end-1), sqrt(v_pc_body(1,:).^2 + v_pc_body(2,:).^2), 'LineWidth', 2);
+hold on;
+plot(time(1:end-1), sqrt(contact_x_dot_body(2:end).^2 + contact_y_dot_body(2:end).^2), 'LineWidth', 2);
+title('Norm of velocity of robot and contact point body frame');
+xlabel('Time (s)');
+ylabel('Velocity (m/s)');
+legend('Norm y-axis robot', 'Norm y-axis contact point');
 grid on;
 
 %% Plot the position of the robitic arm over time
@@ -568,7 +640,7 @@ figure;
 subplot(3,1,1);
 plot(time(1:end), x_pc_world(1,:), 'LineWidth', 2);
 hold on;
-plot(time(1:end), x(1,:), 'LineWidth', 2);
+plot(time(1:end), contact_x_world, 'LineWidth', 2);
 title('Position of robot on x-axis over time');
 xlabel('Time (s)');
 ylabel('Position (m)');
@@ -579,7 +651,7 @@ grid on;
 subplot(3,1,2);
 plot(time(1:end), x_pc_world(2,:), 'LineWidth', 2);
 hold on;
-plot(time(1:end), x(2,:), 'LineWidth', 2);
+plot(time(1:end), contact_y_world, 'LineWidth', 2);
 title('Position of robot on y-axis over time');
 xlabel('Time (s)');
 ylabel('Position (m)');
@@ -589,18 +661,9 @@ grid on;
 % Third subplot for norm of potistion world frame
 subplot(3,1,3);
 plot(x_pc_world(1,:), x_pc_world(2,:), 'LineWidth', 2);
+hold on;
+plot(contact_x_world, contact_y_world, 'LineWidth', 2);
 title('2D plot of position of robot over time');
 xlabel('x_c (m)');
 ylabel('y_c (m)');
-grid on;
-
-%% extra
-figure;
-plot(time(1:end), x(1,:)-x_pc_world(1,:), 'LineWidth', 2);
-hold on;
-plot(time(1:end), x(2,:)-x_pc_world(2,:), 'LineWidth', 2);
-title('Difference in position of robot and object over time');
-xlabel('Time (s)');
-ylabel('Position (m)');
-legend('positions difference x-axis', 'positions difference y-axis');
 grid on;
