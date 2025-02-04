@@ -199,7 +199,7 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
     % QN = 2000 * diag([3, 3, 0.1, 0]);  % Terminal state cost matrix
     % R = 0.5 * diag([1, 1, 0]);        % Input cost matrix
     h = timestep;                     % Timestep
-    M = 1e2;                          % Big-M constant
+    M = 50;                          % Big-M constant
 
     % Objective and constraints arrays
     Aeq = [];                         % Equality constraint matrix
@@ -351,8 +351,8 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
     model.ub =  inf * ones(4 * (N+1), 1);
 
     % Define bounds for inputs (u = [fn, ft, phi_dot])
-    lb_u = [-100; -100; -2];
-    ub_u = [ 100;  100;  2];
+    lb_u = [-50; -30; -2];
+    ub_u = [ 50;  30;  2];
 
     % Repeat input bounds for N steps
     model.lb = [model.lb; repmat(lb_u, N, 1)];
