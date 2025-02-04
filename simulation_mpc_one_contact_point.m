@@ -33,7 +33,7 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-duration = 4;
+duration = 8;
 x_0 = 0;
 x_f = 0.04 * duration;
 % x_f = 0;
@@ -42,10 +42,10 @@ y_f = 0.04 * duration;
 
 delayms = 0;
 timestep = 0.001;
-mpc_timestep = 0.04;
-control_frequency = 0.04;
+mpc_timestep = 0.03;
+control_frequency = 0.06;
 timestep_parameter = mpc_timestep/timestep;
-N = 25;
+N = 35;
 trajectory_radius = 0.2;
 v_constant = 0.055;
 
@@ -95,21 +95,21 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-% x(:,1) = [trajectory_radius+0.03, -0.03, 0, phi_star(1)];
+% x(:,1) = [trajectory_radius+0.02, -0.02, 0, phi_star(1)];
 x(:,1) = [0.03, -0.03, 0, phi_star(1)];
 [x_c, y_c, ~, n_c, t_c] = calculate_r_c(x(4,1), len, radius);
 x_pc_world(:,1) = x(1:2, 1) + [cos(x(3, 1)) -sin(x(3, 1)); sin(x(3, 1)) cos(x(3, 1))] *[x_c; y_c];
 mpc_output = [];
 
 % MPC controller tunable parameters
-% Q = 160 * diag([8, 8, 0.1, 0]);      % State cost matrix
-% QN = 28000 * diag([9, 9, 0.1, 0]);   % Terminal state cost matrix
-% R = 0.05 * diag([1, 1, 0.1]);          % Input cost matrix
-
-% MPC controller tunable parameters
 Q = 100 * diag([5, 5, 0.1, 0]);      % State cost matrix
 QN = 20000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
 R = 0.05 * diag([1, 1, 0.1]);          % Input cost matrix
+
+% MPC controller tunable parameters
+% Q = 140 * diag([7, 7, 0.1, 0]);      % State cost matrix
+% QN = 26000 * diag([8, 8, 0.1, 0]);   % Terminal state cost matrix
+% R = 0.05 * diag([1, 1, 0.1]);          % Input cost matrix
 %% Run simulation
 
 % Set the control input
@@ -146,6 +146,14 @@ for i = 1:floor(duration/timestep)
         du(:,i) = mpc_output(4*(N+1)+1 : 4*(N+1)+3);
         z(:,i) = mpc_output(4*(N+1)+3*N+1 : 4*(N+1)+3*N+3);
         u(:,i) = du(:,i) + u_star(:,i);
+    elseif mod(i*timestep, control_frequency) == control_frequency/2
+        du(:,i) = mpc_output(4*(N+1)+4 : 4*(N+1)+6);
+        z(:,i) = mpc_output(4*(N+1)+3*N+4 : 4*(N+1)+3*N+6);
+        u(:,i) = du(:,i) + u_star(:,i);
+    % elseif mod(i*timestep, control_frequency) == 2*control_frequency/3
+    %     du(:,i) = mpc_output(4*(N+1)+1 : 4*(N+1)+3);
+    %     z(:,i) = mpc_output(4*(N+1)+3*N+1 : 4*(N+1)+3*N+3);
+    %     u(:,i) = du(:,i) + u_star(:,i);
     else
         u(:,i) = u(:,i-1);
         z(:,i) = z(:,i-1);
