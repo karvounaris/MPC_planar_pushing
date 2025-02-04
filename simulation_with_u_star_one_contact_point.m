@@ -13,7 +13,7 @@ len = 0.1;
 radius = 0.05;
 width = radius*2;
 height = 0.05;
-mass = 5;
+mass = 4;
 rectangular_prism_mass = mass * (2*len*radius) / (2*len*radius + pi*radius^2);
 cylinder_mass = mass * (pi*radius^2) / (2*len*radius + pi*radius^2);
 object_shape = "rectangular_capsule_prism";
@@ -22,25 +22,18 @@ I_object = calculate_inertia_matrix(len, width, height, radius, ...
                                     object_shape);
 contact_area = calculate_contact_area(len, width, radius, object_shape);
 
-% Contact points' parameters
-contact_points = cell(1,6);
-contact_points{1,1} = 0;            % x_C
-contact_points{1,2} = 0;            % y_C
-contact_points{1,3} = 0;            % phi_C
-contact_points{1,4} = zeros(2,3);   % J_C
-contact_points{1,5} = [0; 0];       % n_C
-contact_points{1,6} = [0; 0];       % t_C
-
 % Limit surface model
 alpha = 0.63;
 g = 9.81;
 R = sqrt(contact_area/pi);
 F_N = mass * g;
 mu_ground = 0.5;
+mu = 0.3;
 
 L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
+
 
 % System's parameters initialization
 x = [0; 0; 0; 0];
@@ -58,15 +51,29 @@ x_f = 0.04 * duration;
 y_0 = 0;
 y_f = 0.04 * duration;
 
-% [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, time] = ...
+% [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         fifth_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
-[x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
+[x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~] = ...
                         constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         quarter_circle_trajectory(duration, trajectory_radius, timestep);
-% x(1,1) = trajectory_radius;
+
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~, duration] = ...
+%                     constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant, timestep);
+
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
+%                           semi_circle_trajectory(duration, trajectory_radius, timestep);
+
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+%                     constant_velocity_semi_circle_trajectory(trajectory_radius, v_constant, timestep);
+
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
+%                         s_shape_trajectory(duration, trajectory_radius, timestep);
+
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+%                     constant_velocity_s_shape_trajectory(trajectory_radius, v_constant, timestep);
 
 [fn_star, ft_star, phi_star_dot, phi_star, ~] = ...
                           calculate_u_star_one_contact_point(L, x_star_dot, y_star_dot, theta_star, ...

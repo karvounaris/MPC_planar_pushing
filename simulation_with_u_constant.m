@@ -10,11 +10,11 @@ close all
 clc
 
 % Object's parameters
-len = 0.06;
-radius = 0.03;
+len = 0.1;
+radius = 0.05;
 width = radius*2;
-height = 0.03;
-mass = 1;
+height = 0.05;
+mass = 4;
 rectangular_prism_mass = mass * (2*len*radius) / (2*len*radius + pi*radius^2);
 cylinder_mass = mass * (pi*radius^2) / (2*len*radius + pi*radius^2);
 object_shape = "rectangular_capsule_prism";
@@ -23,83 +23,56 @@ I_object = calculate_inertia_matrix(len, width, height, radius, ...
                                     object_shape);
 contact_area = calculate_contact_area(len, width, radius, object_shape);
 
-% Contact points' parameters
-C = 1;
-% phi_C_start = [11*pi/8, 13*pi/8];
-% phi_C_start = 11*pi/8;
-phi_C_start = 13*pi/8;
-% phi_C_start = 3*pi/2;
-% phi_C_start = 0;
-contact_points = cell(C,4);
-for i = 1:C
-    contact_points{i,1} = 0;            % x_C
-    contact_points{i,2} = 0;            % y_C
-    contact_points{i,3} = 0;            % phi_C
-    contact_points{i,4} = zeros(2,3);   % J_C
-    contact_points{i,5} = [0; 0];       % n_C
-    contact_points{i,6} = [0; 0];       % t_C
-end
-N = zeros(3,C);
-T = zeros(3,C);
+% Limit surface model
+alpha = 0.63;
+g = 9.81;
+R = sqrt(contact_area/pi);
+F_N = mass * g;
+mu_ground = 0.5;
+mu = 0.3;
+
+L = [1/(mu_ground*F_N)^2 0 0;
+     0 1/(mu_ground*F_N)^2 0;
+     0 0 1/(alpha*R*mu_ground*F_N)^2];
 
 % System's parameters initialization
-x = 1;
-x_dot = 0;
-x_double_dot = 0;
-y = 1;
-y_dot = 0;
-y_double_dot = 0;
-theta = 0;
-theta_dot = 0;
-theta_double_dot = 0;
-phi_C = zeros(C,1);
-for i = 1:C
-    phi_C(i,1) = phi_C_start(i);
-end
-phi_C_dot = zeros(C,1);
+x = [1; 1; pi/4; 3*pi/2];
+x_dot = [0; 0; 0; 0];
+x_ddot = [0; 0; 0; 0];
 mu_ground = 0.5;          % coefficient of friction ground_object
 
 
 %% Run simulation
 
 % Simulation parameters
-duration = 10;
-timestep = 0.03;
+duration = 5;
+timestep = 0.001;
 
 % Set the control input
-u = [zeros(C,1); zeros(C,1); zeros(C,1)];
+u = [20; 0; 0];
 dp = [0; 0; 0];
 time = 0;
 
 for i = 1:duration/timestep + 1
 
     % Calculate parameters for the motion equation
-    [R, contact_points, w, ground_friction] = calculate_motion_model_parameters(u, theta(i), len, radius, C, ...
-                                                contact_points, N, T, mass, mu_ground, contact_area, dp, phi_C_start);
+    w = calculate_motion_model_parameters(u, x(3,i), len, radius, x(4,i));
+    ground_friction_parameter = 1;
+    [gr_frict, number] = calculate_friction_with_ground(L, dp(:,i), ground_friction_parameter);
 
-    for j = 1:C
-        phi_C_dot(j, i+1) = u(2*C+j,1);
-        phi_C(j, i+1) = phi_C(j, i) + phi_C_dot(j, i+1) * timestep;
-    end
+    ground_friction(:,i) = -gr_frict;
+    wrench(:,i) = w;
 
-    x_double_dot(i+1) = (-ground_friction(1) + w(1))/mass;
-    % x_double_dot(i+1) = w(1)/mass;
-    x_dot(i+1) = x_dot(i) + x_double_dot(i+1) * timestep;
-    x(i+1) = x(i) + x_dot(i+1) * timestep;
+    x_dot(4,i+1) = u(3);
+    x(4, i+1) = x(4, i) + x_dot(4, i+1) * timestep;
 
-    y_double_dot(i+1) = (-ground_friction(2) + w(2))/mass;
-    % y_double_dot(i+1) = w(2)/mass;
-    y_dot(i+1) = y_dot(i) + y_double_dot(i+1) * timestep;
-    y(i+1) = y(i) + y_dot(i+1) * timestep;
-
-    theta_double_dot(i+1) = (-ground_friction(3) + w(3))/I_object(3,3);
-    % theta_double_dot(i+1) = w(3)/I_object(3,3);
-    theta_dot(i+1) = theta_dot(i) + theta_double_dot(i+1) * timestep;
-    theta(i+1) = theta(i) + theta_dot(i+1) * timestep;
+    % x_ddot(1:3, i+1) = inv(diag([mass mass I_object(3,3)])) * (-gr_frict + w);
+    x_ddot(1:3, i+1) = diag([mass mass I_object(3,3)]) \ (-gr_frict + w);
+    x_dot(1:3, i+1) = x_dot(1:3, i) + x_ddot(1:3, i+1) .* timestep;
+    x(1:3, i+1) = x(1:3, i) + x_dot(1:3, i+1) .* timestep;
     
-    u = [0.3 * ones(C,1); zeros(C,1); zeros(C,1)];    
     time(i+1) = time(i) + timestep;
-    dp = [x(i+1) - x(i); y(i+1) - y(i); theta(i+1) - theta(i)];
+    dp(:,i+1) = [x_dot(1, i+1); x_dot(2, i+1); x_dot(3, i+1)];    % Calculate parameters for the motion equation
 
 end
 
@@ -107,54 +80,77 @@ end
 
 % Plot x and y position together in a 2D grid
 figure;
-plot(x, y, 'LineWidth', 2);
+plot(x(1,:), x(2,:), 'LineWidth', 2);
 title('Trajectory of x and y Over Time');
 xlabel('x (m)');
 ylabel('y (m)');
 grid on;
 
 hold on;
-plot(x(1), y(1), 'go', 'MarkerFaceColor', 'g'); % Start point in green
-plot(x(end), y(end), 'yo', 'MarkerFaceColor', 'y'); % End point in red
+plot(x(1,1), x(2,1), 'go', 'MarkerFaceColor', 'g'); % Start point in green
+plot(x(1,end), x(2,end), 'yo', 'MarkerFaceColor', 'y'); % End point in red
 legend('Trajectory', 'Start', 'End');
 hold off;
 
-% % Plot x velocity over time
-% figure;
-% plot(time, x_dot, 'LineWidth', 2);
-% title('x Velocity Over Time');
-% xlabel('Time (s)');
-% ylabel('x Velocity (m/s)');
-% grid on;
-% 
-% % Plot y velocity over time
-% figure;
-% plot(time, y_dot, 'LineWidth', 2);
-% title('y Velocity Over Time');
-% xlabel('Time (s)');
-% ylabel('y Velocity (m/s)');
-% grid on;
-% 
-% % Plot x acceleration over time
-% figure;
-% plot(time, x_double_dot, 'LineWidth', 2);
-% title('x Acceleration Over Time');
-% xlabel('Time (s)');
-% ylabel('x Acceleration (m/s^2)');
-% grid on;
-% 
-% % Plot y acceleration over time
-% figure;
-% plot(time, y_double_dot, 'LineWidth', 2);
-% title('y Acceleration Over Time');
-% xlabel('Time (s)');
-% ylabel('y Acceleration (m/s^2)');
-% grid on;
-% Define object shape for plotting (rectangular capsule prism)
+%% Plot x, y and theta
+
+figure;
+
+% First subplot for x over time
+subplot(3, 1, 1);
+plot(time, x(1, :), 'b-', 'LineWidth', 2); % Plot x
+title('x Over Time');
+xlabel('Time (s)');
+ylabel('x (m)');
+grid on;
+
+% Second subplot for y over time
+subplot(3, 1, 2);
+plot(time, x(2, :), 'b-', 'LineWidth', 2); % Plot y
+title('y and Over Time');
+xlabel('Time (s)');
+ylabel('y (m)');
+grid on;
+
+% Third subplot for theta over time
+subplot(3, 1, 3);
+plot(time, x(3, :), 'b-', 'LineWidth', 2); % Plot theta
+title('\theta and Over Time');
+xlabel('Time (s)');
+ylabel('\theta (rad)');
+grid on;
+
+%% Plot x_dot, y_dot, and theta_dot
+
+figure;
+
+% First subplot for x_dot over time
+subplot(3, 1, 1);
+plot(time, x_dot(1,:), 'b-', 'LineWidth', 2); % Plot x_dot
+title('x\_dot and Over Time');
+xlabel('Time (s)');
+ylabel('x\_dot (m/s)');
+grid on;
+
+% Second subplot for y_dot over time
+subplot(3, 1, 2);
+plot(time, x_dot(2,:), 'b-', 'LineWidth', 2); % Plot y_dot
+title('y\_dot and Over Time');
+xlabel('Time (s)');
+ylabel('y\_dot (m/s)');
+grid on;
+
+% Third subplot for theta_dot over time
+subplot(3, 1, 3);
+plot(time, x_dot(3,:), 'b-', 'LineWidth', 2); % Plot theta_dot
+title('\theta\_dot and Over Time');
+xlabel('Time (s)');
+ylabel('\theta\_dot (rad/s)');
+grid on;
 
 %% Plot Capsule Shape Along Trajectory with Contact Points
 figure;
-plot(x_star, y_star, 'LineWidth', 2, 'DisplayName', 'Trajectory');
+plot(x(1,:), x(2,:), 'b-', 'LineWidth', 2, 'DisplayName', 'Trajectory');
 title('Trajectory of x and y Over Time with Capsule Shape and Contact Points');
 xlabel('x (m)');
 ylabel('y (m)');
@@ -163,58 +159,55 @@ axis equal;
 
 hold on;
 
-plot(x_star(1), y_star(1), 'go', 'MarkerFaceColor', 'g', 'DisplayName', 'Start');
-plot(x_star(end), y_star(end), 'yo', 'MarkerFaceColor', 'y', 'DisplayName', 'End');
+plot(x(1,1), x(2,1), 'go', 'MarkerFaceColor', 'g', 'DisplayName', 'Start');
+plot(x(1,end), x(2,end), 'yo', 'MarkerFaceColor', 'y', 'DisplayName', 'End');
 
 capsule_shape_handle = [];
 
 % Plot the object shape at several points along the trajectory
-for i = 1:round(length(x_star)/20):length(x_star)
-    capsule_shape = get_capsule_shape(len, radius, x_star(i), y_star(i), theta_star(i));
+for i = 1:round(length(x(1,:))/10):length(x(1,:))
+    capsule_shape = get_capsule_shape(len, radius, x(1,i), x(2,i), x(3,i));
 
     if isempty(capsule_shape_handle) 
-        capsule_shape_handle = fill(capsule_shape(:,1), capsule_shape(:,2), 'b', 'FaceAlpha', 0.3, 'DisplayName', 'Capsule Shape');
+        capsule_shape_handle = fill(capsule_shape(:,1), capsule_shape(:,2), 'b', 'FaceAlpha', 0.2, 'DisplayName', 'Capsule Shape');
     else
-        fill(capsule_shape(:,1), capsule_shape(:,2), 'b', 'FaceAlpha', 0.3);
+        fill(capsule_shape(:,1), capsule_shape(:,2), 'b', 'FaceAlpha', 0.2);
     end
 end
 
-contact_x = [];
-contact_y = [];
-
-% Define a scaling factor for the vectors to make them visible
-vector_scale = 0.01;
+contact_x_world = [];
+contact_y_world = [];
 
 % Loop to plot contact points and unit vectors separately
-for i = 1:length(x_star)
-    [x_c, y_c, ~, n_c, t_c] = calculate_r_c(phi_star(i), len, radius);
+for i = 1:length(x(1,:))
+    [x_c, y_c, ~, n_c, t_c] = calculate_r_c(x(4,i), len, radius);
 
-    R = [cos(theta_star(i)), -sin(theta_star(i)); sin(theta_star(i)), cos(theta_star(i))];
-    contact_point_global = R * [x_c; y_c] + [x_star(i); y_star(i)];
+    R = [cos(x(3,i)), -sin(x(3,i)); sin(x(3,i)), cos(x(3,i))];
+    contact_point_global = R * [x_c; y_c] + [x(1,i); x(2,i)];
 
-    contact_x = [contact_x; contact_point_global(1)];
-    contact_y = [contact_y; contact_point_global(2)];
+    contact_x_world = [contact_x_world; contact_point_global(1)];
+    contact_y_world = [contact_y_world; contact_point_global(2)];
 
-    % % Transform the unit vectors to global coordinates
-    % n_c_global = R * n_c;
-    % t_c_global = R * t_c;
-    % 
-    % % Plot the normal and tangent unit vectors at the contact point
-    % quiver(contact_point_global(1), contact_point_global(2), ...
-    %        n_c_global(1) * vector_scale, n_c_global(2) * vector_scale, ...
-    %        'g', 'LineWidth', 1.5, 'MaxHeadSize', 1, 'DisplayName', 'Normal Vector');
-    % 
-    % quiver(contact_point_global(1), contact_point_global(2), ...
-    %        t_c_global(1) * vector_scale, t_c_global(2) * vector_scale, ...
-    %        'm', 'LineWidth', 1.5, 'MaxHeadSize', 1, 'DisplayName', 'Tangent Vector');
+    if i ~=1
+        contact_x_dot_world(i) = (contact_x_world(i) - contact_x_world(i-1))/timestep;
+        contact_y_dot_world(i) = (contact_y_world(i) - contact_y_world(i-1))/timestep;
+        contact_x_dot_body(i) = cos(x(3)) * contact_x_dot_world(i) - sin(x(3)) * contact_y_dot_world(i);
+        contact_y_dot_body(i) = sin(x(3)) * contact_x_dot_world(i) + cos(x(3)) * contact_y_dot_world(i);
+    end
 end
 
-plot(contact_x, contact_y, 'r-', 'LineWidth', 1.5, 'DisplayName', 'Contact Path');
+% Logical indices for j == 1 and j == 0
+idx_1 = (j == 1);
+idx_0 = (j == 0);
+
+% Plot for j == 1 (red circles)
+plot(contact_x_world(idx_1), contact_y_world(idx_1), 'ro', 'MarkerSize', 2);
+
+% Plot for j == 0 (green circles)
+plot(contact_x_world(idx_0), contact_y_world(idx_0), 'go', 'MarkerSize', 2);
 
 legend([capsule_shape_handle; findobj(gca, 'DisplayName', 'Trajectory'); ...
-        findobj(gca, 'DisplayName', 'Start'); findobj(gca, 'DisplayName', 'End'); ...
-        findobj(gca, 'DisplayName', 'Contact Path')], ...
+        findobj(gca, 'DisplayName', 'Start'); findobj(gca, 'DisplayName', 'End')], ...
         'Location', 'Best');
 
 hold off;
-
