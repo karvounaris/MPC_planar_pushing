@@ -23,6 +23,7 @@ R = [cos(theta) -sin(theta) 0;
 
 J_c =  [1 0 -y_c;
         0 1 x_c];
+
 N = J_c' * n_c;
 T = J_c' * t_c;
 

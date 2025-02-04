@@ -16,7 +16,7 @@ function [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_input_changable_u(x_
             ground_friction(:,i) = -gr_frict;
             wrench(:,i) = w;
         
-            x_dot(4,i+1) = u_simulated(3,1);
+            x_dot(4,i+1) = u_simulated(3);
             x(4, i+1) = x(4, i) + x_dot(4, i+1) * timestep;
         
             % x_ddot(1:3, i+1) = inv(diag([mass mass I_object(3,3)])) * (-gr_frict + w);
@@ -27,8 +27,8 @@ function [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_input_changable_u(x_
             dp(:,i+1) = [x_dot(1, i+1); x_dot(2, i+1); x_dot(3, i+1)];
         end
     
-        dx_mpc = x(:, end) - x_star(:, iteration+control_frequency/timestep);
         iteration = iteration + control_frequency/timestep;
+        dx_mpc = x(:, end) - x_star(:, iteration);
     end
 
     for j = 1:N+1
