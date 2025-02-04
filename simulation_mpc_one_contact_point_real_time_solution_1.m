@@ -40,10 +40,10 @@ y_0 = 0;
 y_f = 0.04 * duration;
 
 timestep = 0.001;
-mpc_timestep = 0.05;
+mpc_timestep = 0.04;
 timestep_parameter = mpc_timestep/timestep;
-control_frequency = 0.05;
-N = 20;
+control_frequency = 0.04;
+N = 25;
 trajectory_radius = 0.2;
 v_constant = 0.055;
 
@@ -105,9 +105,9 @@ mpc_output = [];
 % R = 0.1 * diag([1, 1, 0.1]);          % Input cost matrix
 
 % MPC controller tunable parameters
-Q = 120 * diag([5, 5, 0.1, 0]);      % State cost matrix
-QN = 25000 * diag([5, 5, 0.1, 0]);   % Terminal state cost matrix
-R = 0.05 * diag([1, 1, 0.1]);          % Input cost matrix
+Q = 120 * diag([6, 6, 0.2, 0.1]);      % State cost matrix
+QN = 25000 * diag([7, 7, 0.2, 0.1]);   % Terminal state cost matrix
+R = 0.1 * diag([1, 1, 1]);          % Input cost matrix
 %% Run simulation
 
 % Set the control input

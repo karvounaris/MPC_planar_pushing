@@ -50,14 +50,14 @@ v_constant = 0.055;
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         fifth_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
-[x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~] = ...
-                        constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
+% [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~] = ...
+%                         constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         quarter_circle_trajectory(duration, trajectory_radius, timestep);
 
-% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~, duration] = ...
-%                     constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant, timestep);
+[x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~, duration] = ...
+                    constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                           semi_circle_trajectory(duration, trajectory_radius, timestep);
@@ -93,21 +93,21 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-% x(:,1) = [trajectory_radius+0.03, -0.03, 0, phi_star(1)];
-x(:,1) = [0.03, -0.03, 0, phi_star(1)];
+x(:,1) = [trajectory_radius+0.03, -0.03, 0, phi_star(1)];
+% x(:,1) = [0.03, -0.03, 0, phi_star(1)];
 [x_c, y_c, ~, n_c, t_c] = calculate_r_c(x(4,1), len, radius);
-x_pc_world(:,1) = x(1:2, 1) + [cos(x(3, 1)) -sin(x(3, 1)); sin(x(3, 1)) cos(x(3, 1))] *[x_c; y_c];
+x_pc_world(:,1) = x(1:2, 1) + [cos(x(3, 1)) -sin(x(3, 1)); sin(x(3, 1)) cos(x(3, 1))] * [x_c; y_c];
 mpc_output = [];
 
-% MPC controller tunable parameters
-Q = 100 * diag([5, 5, 0.1, 0]);      % State cost matrix
-QN = 20000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
-R = 0.05 * diag([1, 1, 0.1]);          % Input cost matrix
+% MPC controller tunable parameters straight line
+% Q = 80 * diag([7, 7, 0.1, 0]);      % State cost matrix
+% QN = 30000 * diag([8, 8, 0.1, 0]);   % Terminal state cost matrix
+% R = 0.1 * diag([1, 1, 0.5]);          % Input cost matrix
 
-% MPC controller tunable parameters
-% Q = 120 * diag([5, 5, 0.1, 0]);      % State cost matrix
-% QN = 25000 * diag([5, 5, 0.1, 0]);   % Terminal state cost matrix
-% R = 0.01 * diag([1, 1, 0.1]);          % Input cost matrix
+% MPC controller tunable parameters circle
+Q = 80 * diag([7, 7, 0.1, 0]);      % State cost matrix
+QN = 30000 * diag([7, 7, 0.1, 0]);   % Terminal state cost matrix
+R = 0.05 * diag([1, 1, 0.5]);          % Input cost matrix
 %% Run simulation
 
 % Set the control input
@@ -125,10 +125,10 @@ for i = 1:floor(duration/timestep)
     
     if i == 1
         simulation_type_flag = true;
-        [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_input(x_star, u_star,...
+        [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_input_changable_u(x_star, u_star,...
                                     N, i, timestep_parameter, control_frequency,...
                                     u(:,i), x(:,i), len, radius, dp(:,i), timestep, ...
-                                    L, mass, I_object, simulation_type_flag);
+                                    L, mass, I_object);
         tic;
         [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star_mpc, u_star_mpc, dx(:,i), mu, L, ...
                                            radius, len, N, mpc_timestep,  Q, QN, R, mpc_output, is_start);
@@ -144,6 +144,7 @@ for i = 1:floor(duration/timestep)
         mpc_output_use = mpc_output;
         k = k + 1;
     elseif mod(i*timestep, control_frequency) == 0 || i == 2
+        mpc_output_use = mpc_output;
         du(:,i) = mpc_output_use(4*(N+1)+1 : 4*(N+1)+3);
         z(:,i) = mpc_output_use(4*(N+1)+3*N+1 : 4*(N+1)+3*N+3);
         u(:,i) = du(:,i) + u_star(:,i);
@@ -162,11 +163,10 @@ for i = 1:floor(duration/timestep)
         fprintf('Time is: %g\n', time(i));
         fprintf('Error is: %2.4f %2.4f %2.4f %2.4f %2.4f\n', dx(1,i), dx(2,i), dx(3,i), dx(4,i), sqrt(dx(1,i)^2 + dx(2,i)^2));
         k = k + 1;
-    elseif mod(i*timestep, control_frequency) == (control_frequency/2)+1
+    elseif mod(i*timestep, control_frequency) == control_frequency/2
         du(:,i) = mpc_output_use(4*(N+1)+4 : 4*(N+1)+6);
         z(:,i) = mpc_output_use(4*(N+1)+3*N+4 : 4*(N+1)+3*N+6);
         u(:,i) = du(:,i) + u_star(:,i);
-        mpc_output_use = mpc_output;
     else
         u(:,i) = u(:,i-1);
         z(:,i) = z(:,i-1);

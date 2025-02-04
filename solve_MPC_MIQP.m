@@ -382,6 +382,8 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
     % params.Heuristics = 0.1;
     params.TimeLimit = 300;
     % params.MIPFocus = 2;
+    params.Threads = 1;
+    % model.Params.MemLimit = 1;
 
     % Solve the problem with Gurobi
     result = gurobi(model, params);

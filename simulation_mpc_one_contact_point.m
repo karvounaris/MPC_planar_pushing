@@ -33,14 +33,12 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-duration = 8;
+duration = 6;
 x_0 = 0;
 x_f = 0.04 * duration;
-% x_f = 0;
 y_0 = 0;
 y_f = 0.04 * duration;
 
-delayms = 0;
 timestep = 0.001;
 mpc_timestep = 0.03;
 control_frequency = 0.06;
@@ -119,6 +117,7 @@ mpc_timestamps = 0;
 
 ground_friction = zeros(3,1);
 is_start = 1;
+k = 1;
 
 for i = 1:floor(duration/timestep)
     dx(:,i) = x(:,i) - x_star(:,i);
@@ -131,14 +130,9 @@ for i = 1:floor(duration/timestep)
         tic;
         [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star_mpc, u_star_mpc, dx(:,i), mu, L, ...
                                            radius, len, N, mpc_timestep,  Q, QN, R, mpc_output, is_start);
-        if i == 1
-            solver_times(i) = toc;
-            gurobi_solve_times(i) = gurobi_solve_time;
-        else
-            solver_times(round(i * timestep / control_frequency)+1) = toc;
-            gurobi_solve_times(round(i * timestep / control_frequency)+1) = gurobi_solve_time;
-            mpc_timestamps(round(i * timestep / control_frequency)+1) = mpc_timestamps(round(i * timestep / control_frequency)) + control_frequency;
-        end
+        solver_times(k) = round(toc*1000) / 1000;
+        gurobi_solve_times(k) = round(gurobi_solve_time*1000) / 1000;
+        mpc_timestamps(k) = time(i);
         is_start = 0;
         fprintf('Time is: %g\n', time(i));
         fprintf('Error is: %2.4f %2.4f %2.4f %2.4f %2.4f\n', dx(1,i), dx(2,i), dx(3,i), dx(4,i), sqrt(dx(1,i)^2 + dx(2,i)^2));
@@ -146,6 +140,7 @@ for i = 1:floor(duration/timestep)
         du(:,i) = mpc_output(4*(N+1)+1 : 4*(N+1)+3);
         z(:,i) = mpc_output(4*(N+1)+3*N+1 : 4*(N+1)+3*N+3);
         u(:,i) = du(:,i) + u_star(:,i);
+        k = k + 1;
     elseif mod(i*timestep, control_frequency) == control_frequency/2
         du(:,i) = mpc_output(4*(N+1)+4 : 4*(N+1)+6);
         z(:,i) = mpc_output(4*(N+1)+3*N+4 : 4*(N+1)+3*N+6);
