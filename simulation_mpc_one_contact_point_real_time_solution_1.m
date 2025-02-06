@@ -40,10 +40,10 @@ y_0 = 0;
 y_f = 0.04 * duration;
 
 timestep = 0.001;
-mpc_timestep = 0.04;
+mpc_timestep = 0.05;
 timestep_parameter = mpc_timestep/timestep;
-control_frequency = 0.04;
-N = 25;
+control_frequency = 0.05;
+N = 20;
 trajectory_radius = 0.2;
 v_constant = 0.055;
 
@@ -99,15 +99,27 @@ x(:,1) = [0.03, -0.03, 0, phi_star(1)];
 x_pc_world(:,1) = x(1:2, 1) + [cos(x(3, 1)) -sin(x(3, 1)); sin(x(3, 1)) cos(x(3, 1))] *[x_c; y_c];
 mpc_output = [];
 
-% % MPC controller tunable parameters
-% Q = 100 * diag([5, 5, 0.1, 0]);      % State cost matrix
-% QN = 20000 * diag([5, 5, 0.1, 0]);   % Terminal state cost matrix
-% R = 0.1 * diag([1, 1, 0.1]);          % Input cost matrix
+% MPC controller tunable parameters for 0.04s
+Q = 100 * diag([5, 5, 0.1, 0]);      % State cost matrix
+QN = 34000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
+R = 0.05 * diag([1, 1, 0.01]);          % Input cost matrix
 
-% MPC controller tunable parameters
-Q = 120 * diag([6, 6, 0.2, 0.1]);      % State cost matrix
-QN = 25000 * diag([7, 7, 0.2, 0.1]);   % Terminal state cost matrix
-R = 0.1 * diag([1, 1, 1]);          % Input cost matrix
+% NOTE: change the limit of phi_dot to -1 1 from -2 2
+% MPC controller tunable parameters for 0.04s
+% Q = 600 * diag([5, 5, 0.01, 0]);      % State cost matrix
+% QN = 30000 * diag([6, 6, 0.01, 0]);   % Terminal state cost matrix
+% R = 0.05 * diag([1, 1, 0.1]);          % Input cost matrix
+
+% MPC controller tunable parameters for 0.05s
+% Q = 100 * diag([5, 5, 0.1, 0]);      % State cost matrix
+% QN = 30000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
+% R = 0.05 * diag([1, 1, 0.001]);          % Input cost matrix
+
+% NOTE: change the limit of phi_dot to -0.5 0.5 from -2 2
+% MPC controller tunable parameters for 0.05s
+% Q = 600 * diag([5, 5, 0.01, 0]);      % State cost matrix
+% QN = 40000 * diag([6, 6, 0.01, 0]);   % Terminal state cost matrix
+% R = 0.05 * diag([1, 1, 0.1]);          % Input cost matrix
 %% Run simulation
 
 % Set the control input
@@ -123,9 +135,10 @@ k = 1;
 for i = 1:floor(duration/timestep)
     dx(:,i) = x(:,i) - x_star(:,i);
     
+    
     if i == 1
         simulation_type_flag = true;
-        [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_input(x_star, u_star,...
+        [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_constant_u(x_star, u_star,...
                                     N, i, timestep_parameter, control_frequency,...
                                     u(:,i), x(:,i), len, radius, dp(:,i), timestep, ...
                                     L, mass, I_object, simulation_type_flag);
@@ -137,13 +150,14 @@ for i = 1:floor(duration/timestep)
         mpc_timestamps(k) = time(i);
         is_start = 0;
         fprintf('Time is: %g\n', time(i));
-        fprintf('Error is: %2.4f %2.4f %2.4f %2.4f %2.4f\n', dx(1,i), dx(2,i), dx(3,i), dx(4,i), sqrt(dx(1,i)^2 + dx(2,i)^2));
+        fprintf('Error is: %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f\n', dx(1,i), dx(2,i), dx(3,i), dx(4,i), ... 
+                     sqrt(dx(1,i)^2 + dx(2,i)^2), sqrt(dx(1,i)^2 + dx(2,i)^2 + dx(3,i)^2));
         du(:,i) = mpc_output(4*(N+1)+1 : 4*(N+1)+3);
         z(:,i) = mpc_output(4*(N+1)+3*N+1 : 4*(N+1)+3*N+3);
         u(:,i) = du(:,i) + u_star(:,i);
         k = k + 1;
     elseif mod(i*timestep, control_frequency) == 0 || i == 2
-        [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_input(x_star, u_star,...
+        [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_constant_u(x_star, u_star,...
                                     N, i, timestep_parameter, control_frequency,...
                                     u(:,i-1), x(:,i), len, radius, dp(:,i), timestep, ...
                                     L, mass, I_object, simulation_type_flag);
@@ -157,7 +171,8 @@ for i = 1:floor(duration/timestep)
         gurobi_solve_times(k) = round(gurobi_solve_time*1000) / 1000;
         mpc_timestamps(k) = time(i);
         fprintf('Time is: %g\n', time(i));
-        fprintf('Error is: %2.4f %2.4f %2.4f %2.4f %2.4f\n', dx(1,i), dx(2,i), dx(3,i), dx(4,i), sqrt(dx(1,i)^2 + dx(2,i)^2));
+        fprintf('Error is: %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f\n', dx(1,i), dx(2,i), dx(3,i), dx(4,i), ... 
+                     sqrt(dx(1,i)^2 + dx(2,i)^2), sqrt(dx(1,i)^2 + dx(2,i)^2 + dx(3,i)^2));
         k = k + 1;
     else
         u(:,i) = u(:,i-1);
@@ -348,7 +363,7 @@ grid on;
 
 figure;
 % First subplot for dx over time
-subplot(4, 1, 1);
+subplot(3, 1, 1);
 plot(time(1:end-1), dx(1,:), 'LineWidth', 2);
 title('dx Over Time');
 xlabel('Time (s)');
@@ -356,7 +371,7 @@ ylabel('dx (m)');
 grid on;
 
 % Second subplot for dy over time
-subplot(4, 1, 2);
+subplot(3, 1, 2);
 plot(time(1:end-1), dx(2,:), 'LineWidth', 2);
 title('dy Over Time');
 xlabel('Time (s)');
@@ -364,21 +379,27 @@ ylabel('dy (m)');
 grid on;
 
 % Third subplot for dtheta over time
-subplot(4, 1, 3);
+subplot(3, 1, 3);
 plot(time(1:end-1), dx(3,:), 'LineWidth', 2);
 title('dtheta Over Time');
 xlabel('Time (s)');
 ylabel('dtheta (rad)');
 grid on;
 
-% Fourth subplot for torque on z-axis
-subplot(4,1,4);
+figure;
+subplot(2,1,1);
 plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2), 'LineWidth', 2);
 title('Norm of dx and dy over time');
 xlabel('Time (s)');
 ylabel('Norm of dx and dy (m)');
 grid on;
 
+subplot(2,1,2);
+plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2 + dx(3,:).^2), 'LineWidth', 2);
+title('Norm of dx and dy dtheta over time');
+xlabel('Time (s)');
+ylabel('Norm of dx and dy dtheta');
+grid on;
 %% Plot fn ft and phi_dot in seperate plots
 
 figure;

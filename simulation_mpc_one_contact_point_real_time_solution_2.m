@@ -33,7 +33,7 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-duration = 6;
+duration = 8;
 x_0 = 0;
 x_f = 0.04 * duration;
 y_0 = 0;
@@ -56,8 +56,8 @@ v_constant = 0.055;
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         quarter_circle_trajectory(duration, trajectory_radius, timestep);
 
-[x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~, duration] = ...
-                    constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant, timestep);
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~, duration] = ...
+%                     constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                           semi_circle_trajectory(duration, trajectory_radius, timestep);
@@ -68,8 +68,8 @@ v_constant = 0.055;
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         s_shape_trajectory(duration, trajectory_radius, timestep);
 
-% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
-%                     constant_velocity_s_shape_trajectory(trajectory_radius, v_constant, timestep);
+[x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+                    constant_velocity_s_shape_trajectory(trajectory_radius, v_constant, timestep);
 
 % NOTE: change the initial guess that depends on the trajectory selected
 [fn_star, ft_star, phi_star_dot, phi_star, ~] = ...
@@ -100,14 +100,14 @@ x_pc_world(:,1) = x(1:2, 1) + [cos(x(3, 1)) -sin(x(3, 1)); sin(x(3, 1)) cos(x(3,
 mpc_output = [];
 
 % MPC controller tunable parameters straight line
-% Q = 80 * diag([7, 7, 0.1, 0]);      % State cost matrix
-% QN = 30000 * diag([8, 8, 0.1, 0]);   % Terminal state cost matrix
-% R = 0.1 * diag([1, 1, 0.5]);          % Input cost matrix
+% Q = 80 * diag([6, 6, 0.1, 0]);      % State cost matrix
+% QN = 38000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
+% R = 0.1 * diag([1, 1, 0.01]);          % Input cost matrix
 
 % MPC controller tunable parameters circle
-Q = 80 * diag([7, 7, 0.1, 0]);      % State cost matrix
-QN = 30000 * diag([7, 7, 0.1, 0]);   % Terminal state cost matrix
-R = 0.05 * diag([1, 1, 0.5]);          % Input cost matrix
+% Q = 500 * diag([6, 6, 0.1, 0]);      % State cost matrix
+% QN = 40000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
+% R = 0.02 * diag([1, 1, 0.01]);          % Input cost matrix
 %% Run simulation
 
 % Set the control input
@@ -125,7 +125,7 @@ for i = 1:floor(duration/timestep)
     
     if i == 1
         simulation_type_flag = true;
-        [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_input_changable_u(x_star, u_star,...
+        [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_input_changable_2u(x_star, u_star,...
                                     N, i, timestep_parameter, control_frequency,...
                                     u(:,i), x(:,i), len, radius, dp(:,i), timestep, ...
                                     L, mass, I_object);
@@ -150,7 +150,7 @@ for i = 1:floor(duration/timestep)
         u(:,i) = du(:,i) + u_star(:,i);
         du_extra = mpc_output_use(4*(N+1)+4 : 4*(N+1)+6);
         u_extra = du_extra + u_star(:,i+mpc_timestep/timestep);
-        [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_input_changable_u(x_star, u_star,...
+        [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_input_changable_2u(x_star, u_star,...
                                     N, i, timestep_parameter, control_frequency,...
                                     [u(:,i), u_extra], x(:,i), len, radius, dp(:,i), timestep, ...
                                     L, mass, I_object);
