@@ -351,8 +351,8 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
     model.ub =  inf * ones(4 * (N+1), 1);
 
     % Define bounds for inputs (u = [fn, ft, phi_dot])
-    lb_u = [-50; -30; -2];
-    ub_u = [ 50;  30;  2];
+    lb_u = [-50; -30; -1];
+    ub_u = [ 50;  30;  1];
 
     % Repeat input bounds for N steps
     model.lb = [model.lb; repmat(lb_u, N, 1)];
@@ -382,7 +382,7 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
     % params.Heuristics = 0.1;
     params.TimeLimit = 300;
     % params.MIPFocus = 2;
-    params.Threads = 1;
+    params.Threads = 2;
     % model.Params.MemLimit = 1;
 
     % Solve the problem with Gurobi
