@@ -40,10 +40,10 @@ y_0 = 0;
 y_f = 0.04 * duration;
 
 timestep = 0.001;
-mpc_timestep = 0.05;
+mpc_timestep = 0.04;
 timestep_parameter = mpc_timestep/timestep;
-control_frequency = 0.05;
-N = 20;
+control_frequency = 0.04;
+N = 25; % N=25 for 0.04s and N=20 for 0.05s
 trajectory_radius = 0.2;
 v_constant = 0.055;
 
@@ -110,10 +110,11 @@ R = 0.05 * diag([1, 1, 0.01]);          % Input cost matrix
 % QN = 30000 * diag([6, 6, 0.01, 0]);   % Terminal state cost matrix
 % R = 0.05 * diag([1, 1, 0.1]);          % Input cost matrix
 
+% NOTE: change the limit of phi_dot to -0.6 0.6 from -2 2
 % MPC controller tunable parameters for 0.05s
-% Q = 100 * diag([5, 5, 0.1, 0]);      % State cost matrix
-% QN = 30000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
-% R = 0.05 * diag([1, 1, 0.001]);          % Input cost matrix
+% Q = 120 * diag([5, 5, 0.1, 0]);      % State cost matrix
+% QN = 44000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
+% R = 0.05 * diag([1, 1, 0.01]);          % Input cost matrix
 
 % NOTE: change the limit of phi_dot to -0.5 0.5 from -2 2
 % MPC controller tunable parameters for 0.05s

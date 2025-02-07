@@ -43,7 +43,7 @@ timestep = 0.001;
 mpc_timestep = 0.02;
 timestep_parameter = mpc_timestep/timestep;
 control_frequency = 0.06;
-N = 35;
+N = 30;
 trajectory_radius = 0.2;
 v_constant = 0.055;
 
@@ -99,15 +99,17 @@ x(:,1) = [trajectory_radius+0.03, -0.03, 0, phi_star(1)];
 x_pc_world(:,1) = x(1:2, 1) + [cos(x(3, 1)) -sin(x(3, 1)); sin(x(3, 1)) cos(x(3, 1))] * [x_c; y_c];
 mpc_output = [];
 
+% NOTE: phi_dot -1 1 and upper bound for fn 3
 % MPC controller tunable parameters straight line
-% Q = 100 * diag([6, 6, 0.1, 0]);      % State cost matrix
-% QN = 44000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
+% Q = 200 * diag([6, 6, 0.1, 0]);      % State cost matrix
+% QN = 48000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
 % R = 0.05 * diag([1, 1, 0.01]);          % Input cost matrix
 
+% NOTE: phi_dot -0.5 0.5 and upper bound for fn 3
 % MPC controller tunable parameters straight line
-Q = 400 * diag([6, 6, 0.1, 0]);      % State cost matrix
+Q = 800 * diag([6, 6, 0.1, 0]);      % State cost matrix
 QN = 50000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
-R = 0.05 * diag([1, 1, 0.01]);          % Input cost matrix
+R = 0.04 * diag([1, 1, 0.1]);          % Input cost matrix
 %% Run simulation
 
 % Set the control input
@@ -362,7 +364,7 @@ grid on;
 
 figure;
 % First subplot for dx over time
-subplot(4, 1, 1);
+subplot(3, 1, 1);
 plot(time(1:end-1), dx(1,:), 'LineWidth', 2);
 title('dx Over Time');
 xlabel('Time (s)');
@@ -370,7 +372,7 @@ ylabel('dx (m)');
 grid on;
 
 % Second subplot for dy over time
-subplot(4, 1, 2);
+subplot(3, 1, 2);
 plot(time(1:end-1), dx(2,:), 'LineWidth', 2);
 title('dy Over Time');
 xlabel('Time (s)');
@@ -378,19 +380,26 @@ ylabel('dy (m)');
 grid on;
 
 % Third subplot for dtheta over time
-subplot(4, 1, 3);
+subplot(3, 1, 3);
 plot(time(1:end-1), dx(3,:), 'LineWidth', 2);
 title('dtheta Over Time');
 xlabel('Time (s)');
 ylabel('dtheta (rad)');
 grid on;
 
-% Fourth subplot for torque on z-axis
-subplot(4,1,4);
+figure;
+subplot(2,1,1);
 plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2), 'LineWidth', 2);
 title('Norm of dx and dy over time');
 xlabel('Time (s)');
 ylabel('Norm of dx and dy (m)');
+grid on;
+
+subplot(2,1,2);
+plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2 + dx(3,:).^2), 'LineWidth', 2);
+title('Norm of dx and dy dtheta over time');
+xlabel('Time (s)');
+ylabel('Norm of dx and dy dtheta');
 grid on;
 
 %% Plot fn ft and phi_dot in seperate plots
