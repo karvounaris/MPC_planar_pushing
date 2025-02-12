@@ -78,6 +78,7 @@ v_constant = 0.055;
 
 x_star = [x_star; y_star; theta_star; phi_star];
 u_star = [fn_star; ft_star; phi_star_dot];
+% u_star = [fn_star - ones(size(fn_star)); ft_star; phi_star_dot];
 % Define the extension for x_star and u_star
 x_star_extension = repmat(x_star(:, end), 1, control_frequency/timestep + N*timestep_parameter); % Repeat last column of x_star N times
 u_star_extension = zeros(size(u_star, 1), control_frequency/timestep + N*timestep_parameter);    % Create zero matrix for u_star
@@ -100,9 +101,9 @@ x_pc_world(:,1) = x(1:2, 1) + [cos(x(3, 1)) -sin(x(3, 1)); sin(x(3, 1)) cos(x(3,
 mpc_output = [];
 
 % MPC controller tunable parameters for 0.04s
-Q = 100 * diag([5, 5, 0.1, 0]);      % State cost matrix
-QN = 34000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
-R = 0.05 * diag([1, 1, 0.01]);          % Input cost matrix
+% Q = 100 * diag([5, 5, 0.1, 0]);      % State cost matrix
+% QN = 34000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
+% R = 0.05 * diag([1, 1, 0.01]);          % Input cost matrix
 
 % NOTE: change the limit of phi_dot to -1 1 from -2 2
 % MPC controller tunable parameters for 0.04s
@@ -112,9 +113,9 @@ R = 0.05 * diag([1, 1, 0.01]);          % Input cost matrix
 
 % NOTE: change the limit of phi_dot to -0.6 0.6 from -2 2
 % MPC controller tunable parameters for 0.05s
-% Q = 120 * diag([5, 5, 0.1, 0]);      % State cost matrix
-% QN = 44000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
-% R = 0.05 * diag([1, 1, 0.01]);          % Input cost matrix
+Q = 120 * diag([5, 5, 0.1, 0]);      % State cost matrix
+QN = 44000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
+R = 0.05 * diag([1, 1, 0.01]);          % Input cost matrix
 
 % NOTE: change the limit of phi_dot to -0.5 0.5 from -2 2
 % MPC controller tunable parameters for 0.05s
@@ -157,7 +158,7 @@ for i = 1:floor(duration/timestep)
         z(:,i) = mpc_output(4*(N+1)+3*N+1 : 4*(N+1)+3*N+3);
         u(:,i) = du(:,i) + u_star(:,i);
         k = k + 1;
-    elseif mod(i*timestep, control_frequency) == 0 || i == 2
+    elseif (mod(i*timestep, control_frequency) == 0 || i == 2)
         [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_constant_u(x_star, u_star,...
                                     N, i, timestep_parameter, control_frequency,...
                                     u(:,i-1), x(:,i), len, radius, dp(:,i), timestep, ...
@@ -676,3 +677,36 @@ title('2D plot of position of robot over time');
 xlabel('x_c (m)');
 ylabel('y_c (m)');
 grid on;
+
+%% Path error metrics
+
+[path_error, x_y_error, theta_error] = path_error_MIQP(x, x_star);
+
+%% plots of path errors
+figure;
+% First subplot for path error
+subplot(3,1,1);
+plot(time(1:end), path_error, 'LineWidth', 2);
+title('Path error x-y-theta');
+xlabel('Time (s)');
+ylabel('Error');
+grid on;
+
+% Second subplot for path error
+subplot(3,1,2);
+plot(time(1:end), x_y_error, 'LineWidth', 2);
+title('Path error x-y');
+xlabel('Time (s)');
+ylabel('Error (m)');
+grid on;
+
+% Third subplot for path error
+subplot(3,1,3);
+plot(time(1:end), theta_error, 'LineWidth', 2);
+title('Path error theta');
+xlabel('Time (s)');
+ylabel('Error (rad)');
+grid on;
+
+
+

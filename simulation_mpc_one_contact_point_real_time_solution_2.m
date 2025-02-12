@@ -50,8 +50,8 @@ v_constant = 0.055;
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         fifth_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
-% [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~] = ...
-%                         constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
+[x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~] = ...
+                        constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         quarter_circle_trajectory(duration, trajectory_radius, timestep);
@@ -68,8 +68,8 @@ v_constant = 0.055;
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         s_shape_trajectory(duration, trajectory_radius, timestep);
 
-[x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
-                    constant_velocity_s_shape_trajectory(trajectory_radius, v_constant, timestep);
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+%                     constant_velocity_s_shape_trajectory(trajectory_radius, v_constant, timestep);
 
 % NOTE: change the initial guess that depends on the trajectory selected
 [fn_star, ft_star, phi_star_dot, phi_star, ~] = ...
@@ -93,23 +93,23 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-x(:,1) = [trajectory_radius+0.03, -0.03, 0, phi_star(1)];
-% x(:,1) = [0.03, -0.03, 0, phi_star(1)];
+% x(:,1) = [trajectory_radius+0.03, -0.03, 0, phi_star(1)];
+x(:,1) = [0.03, -0.03, 0, phi_star(1)];
 [x_c, y_c, ~, n_c, t_c] = calculate_r_c(x(4,1), len, radius);
 x_pc_world(:,1) = x(1:2, 1) + [cos(x(3, 1)) -sin(x(3, 1)); sin(x(3, 1)) cos(x(3, 1))] * [x_c; y_c];
 mpc_output = [];
 
 % NOTE: phi_dot -2 2
 % MPC controller tunable parameters straight line
-% Q = 80 * diag([6, 6, 0.1, 0]);      % State cost matrix
-% QN = 38000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
-% R = 0.1 * diag([1, 1, 0.01]);          % Input cost matrix
+Q = 80 * diag([6, 6, 0.1, 0]);      % State cost matrix
+QN = 38000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
+R = 0.1 * diag([1, 1, 0.01]);          % Input cost matrix
 
 % NOTE: phi_dot -1 1
 % MPC controller tunable parameters circle
-Q = 400 * diag([6, 6, 0.1, 0]);      % State cost matrix
-QN = 58000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
-R = 0.05 * diag([1, 1, 0.01]);          % Input cost matrix
+% Q = 400 * diag([6, 6, 0.1, 0]);      % State cost matrix
+% QN = 58000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
+% R = 0.05 * diag([1, 1, 0.01]);          % Input cost matrix
 
 %% Run simulation
 
@@ -672,3 +672,33 @@ title('2D plot of position of robot over time');
 xlabel('x_c (m)');
 ylabel('y_c (m)');
 grid on;
+
+%% Path error metrics
+
+[path_error, x_y_error, theta_error] = path_error_MIQP(x, x_star);
+
+figure;
+% First subplot for path error
+subplot(3,1,1);
+plot(time(1:end), path_error, 'LineWidth', 2);
+title('Path error x-y-theta');
+xlabel('Time (s)');
+ylabel('Error');
+grid on;
+
+% Second subplot for path error
+subplot(3,1,2);
+plot(time(1:end), x_y_error, 'LineWidth', 2);
+title('Path error x-y');
+xlabel('Time (s)');
+ylabel('Error (m)');
+grid on;
+
+% Third subplot for path error
+subplot(3,1,3);
+plot(time(1:end), theta_error, 'LineWidth', 2);
+title('Path error theta');
+xlabel('Time (s)');
+ylabel('Error (rad)');
+grid on;
+

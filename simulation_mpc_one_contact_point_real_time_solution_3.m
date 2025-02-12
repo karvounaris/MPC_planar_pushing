@@ -677,3 +677,33 @@ title('2D plot of position of robot over time');
 xlabel('x_c (m)');
 ylabel('y_c (m)');
 grid on;
+
+%% Path error metrics
+
+[path_error, x_y_error, theta_error] = path_error_MIQP(x, x_star);
+
+figure;
+% First subplot for path error
+subplot(3,1,1);
+plot(time(1:end), path_error, 'LineWidth', 2);
+title('Path error x-y-theta');
+xlabel('Time (s)');
+ylabel('Error');
+grid on;
+
+% Second subplot for path error
+subplot(3,1,2);
+plot(time(1:end), x_y_error, 'LineWidth', 2);
+title('Path error x-y');
+xlabel('Time (s)');
+ylabel('Error (m)');
+grid on;
+
+% Third subplot for path error
+subplot(3,1,3);
+plot(time(1:end), theta_error, 'LineWidth', 2);
+title('Path error theta');
+xlabel('Time (s)');
+ylabel('Error (rad)');
+grid on;
+
