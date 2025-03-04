@@ -11,61 +11,77 @@ clc
 % Object's parameters
 len = 0.1;
 radius = 0.05;
-width = radius*2;
-height = 0.05;
+width = 0.1;
+height = 0.1;
 mass = 4;
+rectangular_prism_mass = mass * (2*len*radius) / (2*len*radius + pi*radius^2);
+cylinder_mass = mass * (pi*radius^2) / (2*len*radius + pi*radius^2);
 object_shape = "rectangular_capsule_prism";
+I_object = calculate_inertia_matrix(len, width, height, radius, ...
+                                    rectangular_prism_mass, cylinder_mass/2, ...
+                                    object_shape);
 contact_area = calculate_contact_area(len, width, radius, object_shape);
 
+% Limit surface model
 alpha = 0.63;
 g = 9.81;
 R = sqrt(contact_area/pi);
 F_N = mass * g;
-ground_friction_parameter = 1;
 mu_ground = 0.5;
+mu = 0.3;
 
 L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-% System's parameters initialization
-duration = 6;
-x_0 = 0;
-x_f = 0.04 * duration;
-y_0 = 0;
-y_f = 0.04 * duration;
+duration = 8;
+x_0 = -0.2;
+x_f = x_0 + 0.04 * duration;
+y_0 = 0.1;
+y_f = y_0 + 0.04 * duration;
 
-timestep = 0.001;
+timestep = 0.002;
 trajectory_radius = 0.2;
-v_constant = 0.05;
+v_constant = 0.055;
+x_center = 0;
+y_center = 0.2;
 
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, time] = ...
 %                         fifth_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
-[x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, time] = ...
-                        constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
+% [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, time] = ...
+%                         constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time] = ...
 %                         quarter_circle_trajectory(duration, trajectory_radius, timestep);
 
-% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, time, duration] = ...
-%                     constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant, timestep);
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time, duration] = ...
+%                     constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant, timestep, x_center, y_center);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time] = ...
 %                           semi_circle_trajectory(duration, trajectory_radius, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time, duration] = ...
-%                     constant_velocity_semi_circle_trajectory(trajectory_radius, v_constant, timestep);
+%                     constant_velocity_semi_circle_trajectory(trajectory_radius, v_constant, timestep, x_center, y_center);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time] = ...
 %                         s_shape_trajectory(duration, trajectory_radius, timestep);
 
-% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time, duration] = ...
-%                     constant_velocity_s_shape_trajectory(trajectory_radius, v_constant, timestep);
+[x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time, duration] = ...
+                    constant_velocity_s_shape_trajectory(trajectory_radius, v_constant, timestep, x_center, y_center);
 
 [fn_star, ft_star, phi_star_dot, phi_star, timestep_number] = ...
                           calculate_u_star_one_contact_point(L, x_star_dot, y_star_dot, theta_star, ...
                           theta_star_dot, len, radius, timestep, duration);
+
+T = table(x_star(:), y_star(:), theta_star(:), phi_star(:), fn_star(:), ft_star(:), phi_star_dot(:), ...
+          'VariableNames', {'x_star', 'y_star', 'theta_star', 'phi_star', 'fn_star', 'ft_star', 'phi_star_dot'});
+
+writetable(T, 'simulation_data_straight_line_8s.csv');
+% writetable(T, 'simulation_data_quarter_circle_20cm_radius.csv');
+% writetable(T, 'simulation_data_semi_circle_20cm_radius.csv');
+% writetable(T, 'simulation_data_s_shape_20cm_radius.csv')
+
 
 %% plot x_c and y_c
 
