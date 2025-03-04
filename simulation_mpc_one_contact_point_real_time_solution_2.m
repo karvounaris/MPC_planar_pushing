@@ -43,21 +43,23 @@ timestep = 0.001;
 mpc_timestep = 0.03;
 timestep_parameter = mpc_timestep/timestep;
 control_frequency = 0.06;
-N = 35;
+N = 30;
 trajectory_radius = 0.2;
 v_constant = 0.055;
+x_center = 0;
+y_center = 0;
 
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         fifth_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
-[x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~] = ...
-                        constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
+% [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
+%                         constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         quarter_circle_trajectory(duration, trajectory_radius, timestep);
 
-% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, phi_star, phi_star_dot, ~, duration] = ...
-%                     constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant, timestep);
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+%                     constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant, timestep, x_center, y_center);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                           semi_circle_trajectory(duration, trajectory_radius, timestep);
@@ -68,8 +70,8 @@ v_constant = 0.055;
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         s_shape_trajectory(duration, trajectory_radius, timestep);
 
-% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
-%                     constant_velocity_s_shape_trajectory(trajectory_radius, v_constant, timestep);
+[x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+                    constant_velocity_s_shape_trajectory(trajectory_radius, v_constant, timestep, x_center, y_center);
 
 % NOTE: change the initial guess that depends on the trajectory selected
 [fn_star, ft_star, phi_star_dot, phi_star, ~] = ...
@@ -78,9 +80,11 @@ v_constant = 0.055;
 
 x_star = [x_star; y_star; theta_star; phi_star];
 u_star = [fn_star; ft_star; phi_star_dot];
+% u_star = [fn_star - 2 * ones(size(fn_star)); ft_star; phi_star_dot];
 % Define the extension for x_star and u_star
 x_star_extension = repmat(x_star(:, end), 1, control_frequency/timestep + N*timestep_parameter); % Repeat last column of x_star N times
 u_star_extension = zeros(size(u_star, 1), control_frequency/timestep + N*timestep_parameter);    % Create zero matrix for u_star
+% u_star_extension = repmat(u_star(:, end), 1, control_frequency/timestep + N*timestep_parameter);
 % Append the extensions to x_star and u_star
 x_star = [x_star, x_star_extension];
 u_star = [u_star, u_star_extension];
@@ -93,23 +97,21 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-% x(:,1) = [trajectory_radius+0.03, -0.03, 0, phi_star(1)];
-x(:,1) = [0.03, -0.03, 0, phi_star(1)];
+x(:,1) = [trajectory_radius+0.04, -0.04, 0, 3*pi/2];
+% x(:,1) = [0.06, -0.06, 0, 3*pi/2];
 [x_c, y_c, ~, n_c, t_c] = calculate_r_c(x(4,1), len, radius);
-x_pc_world(:,1) = x(1:2, 1) + [cos(x(3, 1)) -sin(x(3, 1)); sin(x(3, 1)) cos(x(3, 1))] * [x_c; y_c];
+x_pc_world(:,1) = x(1:2, 1) + [cos(x(3, 1)) -sin(x(3, 1)); sin(x(3, 1)) cos(x(3, 1))] *[x_c; y_c];
 mpc_output = [];
 
-% NOTE: phi_dot -2 2
-% MPC controller tunable parameters straight line
-Q = 80 * diag([6, 6, 0.1, 0]);      % State cost matrix
-QN = 38000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
-R = 0.1 * diag([1, 1, 0.01]);          % Input cost matrix
+% MPC controller tunable parameters for 0.04s
+% Q = 100 * diag([5, 5, 0.1, 0]);
+% QN = 48000 * diag([5, 5, 0.1, 0]);
+% R = 0.02 * diag([1, 1, 0.01]);
 
-% NOTE: phi_dot -1 1
-% MPC controller tunable parameters circle
-% Q = 400 * diag([6, 6, 0.1, 0]);      % State cost matrix
-% QN = 58000 * diag([6, 6, 0.1, 0]);   % Terminal state cost matrix
-% R = 0.05 * diag([1, 1, 0.01]);          % Input cost matrix
+% MPC controller tunable parameters for 0.04s
+Q = 100 * diag([5, 5, 0.01, 0]);
+QN = 46000 * diag([5, 5, 0.01, 0]);
+R = 0.04 * diag([1, 1, 0.01]);
 
 %% Run simulation
 
@@ -205,15 +207,10 @@ for i = 1:floor(duration/timestep)
     
 end
 
-%% Present calculation metrics
-metrics = calculate_metrics(x, x_star, u, solver_times, N);
-disp('Simulation Metrics:');
-disp(metrics);
-
 %% Plot Capsule Shape Along Trajectory with Contact Points
 figure;
 plot(x(1,:), x(2,:), 'b-', 'LineWidth', 2, 'DisplayName', 'Trajectory');
-title('Trajectory of x and y Over Time with Capsule Shape and Contact Points');
+% title('Trajectory with Capsule Shape');
 xlabel('x (m)');
 ylabel('y (m)');
 grid on;
@@ -263,10 +260,12 @@ idx_1 = (j == 1);
 idx_0 = (j == 0);
 
 % Plot for j == 1 (red circles)
-plot(contact_x_world(idx_1), contact_y_world(idx_1), 'ro', 'MarkerSize', 2);
+% plot(contact_x_world(idx_1), contact_y_world(idx_1), 'ro', 'MarkerSize', 2, 'DisplayName', 'Contact Point');
+contact_handle = plot(contact_x_world, contact_y_world, 'r-', 'LineWidth', 2, 'DisplayName', 'Contact Point');
 
 % Plot for j == 0 (green circles)
-plot(contact_x_world(idx_0), contact_y_world(idx_0), 'go', 'MarkerSize', 2);
+% plot(contact_x_world(idx_0), contact_y_world(idx_0), 'go', 'MarkerSize', 2);
+plot(contact_x_world(idx_0), contact_y_world(idx_0), 'ro', 'MarkerSize', 2);
 
 % plot(contact_x, contact_y, 'r-', 'LineWidth', 1.5, 'DisplayName', 'Contact Path');
 
@@ -276,8 +275,9 @@ plot(x_star(1,1), x_star(2,1), 'go', 'MarkerFaceColor', 'g'); % Start point of x
 plot(x_star(1,end), x_star(2,end), 'yo', 'MarkerFaceColor', 'y'); % End point of x_star in yellow
 
 legend([capsule_shape_handle; findobj(gca, 'DisplayName', 'Trajectory'); ...
-        findobj(gca, 'DisplayName', 'Desired trajectory'); findobj(gca, 'DisplayName', 'Start'); findobj(gca, 'DisplayName', 'End')], ...
-        'Location', 'Best');
+        findobj(gca, 'DisplayName', 'Desired trajectory'); ...
+        findobj(gca, 'DisplayName', 'Start'); findobj(gca, 'DisplayName', 'End'); ...
+        contact_handle], 'Location', 'Best');
 
 hold off;
 
@@ -290,7 +290,7 @@ subplot(3, 1, 1);
 plot(time, x(1, :), 'b-', 'LineWidth', 2); % Plot x
 hold on;
 plot(time, x_star(1, 1:length(x(1,:))), 'r-', 'LineWidth', 2); % Plot x_star
-title('x and x^* Over Time');
+% title('x and x^* Over Time');
 xlabel('Time (s)');
 ylabel('x (m)');
 legend('x', 'x^*', 'Location', 'best');
@@ -301,7 +301,7 @@ subplot(3, 1, 2);
 plot(time, x(2, :), 'b-', 'LineWidth', 2); % Plot y
 hold on;
 plot(time, x_star(2, 1:length(x(2,:))), 'r-', 'LineWidth', 2); % Plot y_star
-title('y and y^* Over Time');
+% title('y and y^* Over Time');
 xlabel('Time (s)');
 ylabel('y (m)');
 legend('y', 'y^*', 'Location', 'best');
@@ -312,7 +312,7 @@ subplot(3, 1, 3);
 plot(time, x(3, :), 'b-', 'LineWidth', 2); % Plot theta
 hold on;
 plot(time, x_star(3, 1:length(x(2,:))), 'r-', 'LineWidth', 2); % Plot theta_star
-title('\theta and \theta^* Over Time');
+% title('\theta and \theta^* Over Time');
 xlabel('Time (s)');
 ylabel('\theta (rad)');
 legend('\theta', '\theta^*', 'Location', 'best');
@@ -327,10 +327,9 @@ subplot(3, 1, 1);
 plot(time, x_dot(1,:), 'b-', 'LineWidth', 2); % Plot x_dot
 hold on;
 plot(time, x_star_dot(1,:), 'r-', 'LineWidth', 2); % Plot x_star_dot
-title('x\_dot and x\_dot^* Over Time');
 xlabel('Time (s)');
-ylabel('x\_dot (m/s)');
-legend('x\_dot', 'x\_dot^*', 'Location', 'best');
+ylabel('$\dot{x}$ (m/s)', 'Interpreter', 'latex');
+legend({'$\dot{x}$', '$\dot{x}^*$'}, 'Interpreter', 'latex', 'Location', 'best');
 grid on;
 
 % Second subplot for y_dot and y_star_dot over time
@@ -338,10 +337,9 @@ subplot(3, 1, 2);
 plot(time, x_dot(2,:), 'b-', 'LineWidth', 2); % Plot y_dot
 hold on;
 plot(time, y_star_dot, 'r-', 'LineWidth', 2); % Plot y_star_dot
-title('y\_dot and y\_dot^* Over Time');
 xlabel('Time (s)');
-ylabel('y\_dot (m/s)');
-legend('y\_dot', 'y\_dot^*', 'Location', 'best');
+ylabel('$\dot{y}$ (m/s)', 'Interpreter', 'latex');
+legend({'$\dot{y}$', '$\dot{y}^*$'}, 'Interpreter', 'latex', 'Location', 'best');
 grid on;
 
 % Third subplot for theta_dot and theta_star_dot over time
@@ -349,11 +347,11 @@ subplot(3, 1, 3);
 plot(time, x_dot(3,:), 'b-', 'LineWidth', 2); % Plot theta_dot
 hold on;
 plot(time, theta_star_dot, 'r-', 'LineWidth', 2); % Plot theta_star_dot
-title('\theta\_dot and \theta\_dot^* Over Time');
 xlabel('Time (s)');
-ylabel('\theta\_dot (rad/s)');
-legend('\theta\_dot', '\theta\_dot^*', 'Location', 'best');
+ylabel('$\dot{\theta}$ (rad/s)', 'Interpreter', 'latex');
+legend({'$\dot{\theta}$', '$\dot{\theta}^*$'}, 'Interpreter', 'latex', 'Location', 'best');
 grid on;
+
 
 %% Plot dx dy and dtheta in seperate plots
 
@@ -361,49 +359,48 @@ figure;
 % First subplot for dx over time
 subplot(3, 1, 1);
 plot(time(1:end-1), dx(1,:), 'LineWidth', 2);
-title('dx Over Time');
+% title('dx Over Time');
 xlabel('Time (s)');
-ylabel('dx (m)');
+ylabel('$\bar{x}$ (m)', 'Interpreter', 'latex');
 grid on;
 
 % Second subplot for dy over time
 subplot(3, 1, 2);
 plot(time(1:end-1), dx(2,:), 'LineWidth', 2);
-title('dy Over Time');
+% title('dy Over Time');
 xlabel('Time (s)');
-ylabel('dy (m)');
+ylabel('$\bar{y}$ (m)', 'Interpreter', 'latex');
 grid on;
 
 % Third subplot for dtheta over time
 subplot(3, 1, 3);
 plot(time(1:end-1), dx(3,:), 'LineWidth', 2);
-title('dtheta Over Time');
+% title('dtheta Over Time');
 xlabel('Time (s)');
-ylabel('dtheta (rad)');
+ylabel('$\bar{\theta}$ (rad)', 'Interpreter', 'latex');
 grid on;
 
 figure;
 subplot(2,1,1);
 plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2), 'LineWidth', 2);
-title('Norm of dx and dy over time');
+% title('Norm of dx and dy over time');
 xlabel('Time (s)');
-ylabel('Norm of dx and dy (m)');
+ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
 grid on;
 
 subplot(2,1,2);
 plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2 + dx(3,:).^2), 'LineWidth', 2);
-title('Norm of dx and dy dtheta over time');
+% title('Norm of dx and dy dtheta over time');
 xlabel('Time (s)');
-ylabel('Norm of dx and dy dtheta');
+ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2 + \bar{\theta}^2}$', 'Interpreter', 'latex');
 grid on;
-
 %% Plot fn ft and phi_dot in seperate plots
 
 figure;
 % First subplot for fn over time
 subplot(3, 1, 1);
 plot(time(1:end-1), u(1,:), 'LineWidth', 2);
-title('fn Over Time');
+% title('fn Over Time');
 xlabel('Time (s)');
 ylabel('fn (N)');
 grid on;
@@ -411,7 +408,7 @@ grid on;
 % Second subplot for ft over time
 subplot(3, 1, 2);
 plot(time(1:end-1), u(2,:), 'LineWidth', 2);
-title('ft Over Time');
+% title('ft Over Time');
 xlabel('Time (s)');
 ylabel('ft (N)');
 grid on;
@@ -419,38 +416,37 @@ grid on;
 % Third subplot for phi_dot over time
 subplot(3, 1, 3);
 plot(time(1:end-1), u(3,:), 'LineWidth', 2);
-title('phi dot Over Time');
+% title('phi dot Over Time');
 xlabel('Time (s)');
-ylabel('phi dot (rad/sec)');
+ylabel('$\dot{\phi}$ (rad/sec)', 'Interpreter', 'latex');
 grid on;
 
 
 %% Plot dfn dft and dphi_dot in seperate plots
 
 figure;
+
 % First subplot for dfn over time
 subplot(3, 1, 1);
 plot(time(1:length(du(1,:))), du(1,:), 'LineWidth', 2);
-title('dfn Over Time');
 xlabel('Time (s)');
-ylabel('dfn (N)');
+ylabel('$\bar{f}_n$ (N)', 'Interpreter', 'latex');
 grid on;
 
 % Second subplot for dft over time
 subplot(3, 1, 2);
 plot(time(1:length(du(2,:))), du(2,:), 'LineWidth', 2);
-title('dft Over Time');
 xlabel('Time (s)');
-ylabel('dft (N)');
+ylabel('$\bar{f}_t$ (N)', 'Interpreter', 'latex');
 grid on;
 
 % Third subplot for dphi_dot over time
 subplot(3, 1, 3);
 plot(time(1:length(du(3,:))), du(3,:), 'LineWidth', 2);
-title('dphi dot Over Time');
 xlabel('Time (s)');
-ylabel('dphi dot (rad/sec)');
+ylabel('$\dot{\bar{\phi}}$ (rad/s)', 'Interpreter', 'latex');
 grid on;
+
 
 %% Plot z1 z2 and z3 in seperate plots
 
@@ -458,45 +454,45 @@ figure;
 % First subplot for z1 over time
 subplot(3, 1, 1);
 plot(time(1:end-1), z(1,:), 'LineWidth', 2);
-title('z1 mode (sticking) Over Time');
+% title('z1 mode (sticking) Over Time');
 xlabel('Time (s)');
-ylabel('binary z1');
+ylabel('z1');
 grid on;
 
 % Second subplot for z2 over time
 subplot(3, 1, 2);
 plot(time(1:end-1), z(2,:), 'LineWidth', 2);
-title('z2 mode (Sliding Left) Over Time');
+% title('z2 mode (Sliding Left) Over Time');
 xlabel('Time (s)');
-ylabel('binary z2');
+ylabel('z2');
 grid on;
 
 % Third subplot for z3 over time
 subplot(3, 1, 3);
 plot(time(1:end-1), z(3,:), 'LineWidth', 2);
-title('z3 mode (Sliding Right) Over Time');
+% title('z3 mode (Sliding Right) Over Time');
 xlabel('Time (s)');
-ylabel('binary z3');
+ylabel('z3');
 grid on;
 
 %% Plot phi and phi_dot in seperate plots
 
 figure;
-% First subplot for dfn over time
+
+% First subplot for phi over time
 subplot(2, 1, 1);
 plot(time(1:end), x(4,:), 'LineWidth', 2);
-title('phi Over Time');
 xlabel('Time (s)');
-ylabel('phi (rad)');
+ylabel('$\bar{\phi}$ (rad)', 'Interpreter', 'latex');
 grid on;
 
 % Second subplot for phi_dot over time
 subplot(2, 1, 2);
 plot(time(1:end), x_dot(4,:), 'LineWidth', 2);
-title('phi dot Over Time');
 xlabel('Time (s)');
-ylabel('phi dot (rad/sec)');
+ylabel('$\dot{\bar{\phi}}$ (rad/s)', 'Interpreter', 'latex');
 grid on;
+
 
 %% Plot wrench and ground friction over time over time
 
@@ -560,9 +556,9 @@ figure;
 plot(mpc_timestamps, solver_times, 'LineWidth', 2);
 hold on;
 plot(mpc_timestamps, gurobi_solve_times, 'LineWidth', 2);
-title('Solver time');
-xlabel('MPC activation number');
-ylabel('Time (s)');
+% title('Solver time');
+xlabel('Simulation Time (s)');
+ylabel('Solver Time (s)');
 legend('Time By Matlab', 'Time By Gurobi');
 grid on;
 
@@ -675,30 +671,32 @@ grid on;
 
 %% Path error metrics
 
-[path_error, x_y_error, theta_error] = path_error_MIQP(x, x_star);
-
-figure;
-% First subplot for path error
-subplot(3,1,1);
-plot(time(1:end), path_error, 'LineWidth', 2);
-title('Path error x-y-theta');
-xlabel('Time (s)');
-ylabel('Error');
-grid on;
-
-% Second subplot for path error
-subplot(3,1,2);
-plot(time(1:end), x_y_error, 'LineWidth', 2);
-title('Path error x-y');
-xlabel('Time (s)');
-ylabel('Error (m)');
-grid on;
-
-% Third subplot for path error
-subplot(3,1,3);
-plot(time(1:end), theta_error, 'LineWidth', 2);
-title('Path error theta');
-xlabel('Time (s)');
-ylabel('Error (rad)');
-grid on;
-
+% [path_error, x_y_error, theta_error] = path_error_MIQP(x, x_star);
+% 
+% %% plots of path errors
+% figure;
+% % First subplot for path error
+% subplot(3,1,1);
+% plot(time(1:end), path_error, 'LineWidth', 2);
+% % title('Path error x-y-theta');
+% xlabel('Time (s)');
+% ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2 + \bar{\theta}^2}$', 'Interpreter', 'latex');
+% grid on;
+% 
+% % Second subplot for path error
+% subplot(3,1,2);
+% plot(time(1:end), x_y_error, 'LineWidth', 2);
+% % title('Path error x-y');
+% xlabel('Time (s)');
+% ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
+% grid on;
+% 
+% % Third subplot for path error
+% subplot(3,1,3);
+% plot(time(1:end), theta_error, 'LineWidth', 2);
+% % title('Path error theta');
+% xlabel('Time (s)');
+% ylabel('$\bar{\theta}$ (rad)', 'Interpreter', 'latex');
+% 
+% grid on;
+% 
