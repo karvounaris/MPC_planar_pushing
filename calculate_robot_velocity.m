@@ -10,7 +10,7 @@ function [v_pc, v_pc_world] = calculate_robot_velocity(L, x, len, radius, u)
     
     B = [N T];
 
-    r_c_partial_derivative_phi = calculate_r_c_derivatives(x(4), radius);
+    r_c_partial_derivative_phi = calculate_r_c_derivatives_capsule(x(4), radius);
 
     G_c = [J_c*L*B, r_c_partial_derivative_phi];
     v_pc = G_c * u;

@@ -1,57 +1,110 @@
 function [A, B] = linearize_system(x_star, u_star, L, radius, len)
     % Define symbolic variables for state and input
-    syms x_sym y_sym theta_sym phi_sym fn_sym ft_sym phi_dot_sym
-    x_vec = [x_sym; y_sym; theta_sym; phi_sym];
-    u_vec = [fn_sym; ft_sym; phi_dot_sym];
+    syms x y theta phi fn ft phi_dot L l1 l2 l3 len
+    x_vec = [x; y; theta; phi];
+    u_vec = [fn; ft; phi_dot];
+
+    L = [l1 0 0;
+         0 l2 0;
+         0 0 l3];
     
-    % Define symbolic expressions for each case in the dynamics
+    % Define symbolic expressions for each case in the dynamics capsule
+    % dx_case1 = [
+    %     (L(1,1)*(-cos(2*phi))*cos(theta) - L(2,2)*(-sin(2*phi))*sin(theta))*fn + ...
+    %     (L(1,1)*(sin(2*phi))*cos(theta) - L(2,2)*(-cos(2*phi))*sin(theta))*ft;
+    % 
+    %     (L(1,1)*(-cos(2*phi))*sin(theta) + L(2,2)*(-sin(2*phi))*cos(theta))*fn + ...
+    %     (L(1,1)*(sin(2*phi))*sin(theta) + L(2,2)*(-cos(2*phi))*cos(theta))*ft;
+    % 
+    %     L(3,3)*(-radius*sin(2*phi)*(-cos(2*phi)) + (len/2+radius*cos(2*phi))*(-sin(2*phi)))*fn + ...
+    %     L(3,3)*(-radius*sin(2*phi)*(sin(2*phi)) + (len/2+radius*cos(2*phi))*(-cos(2*phi)))*ft;
+    % 
+    %     phi_dot];
+    % 
+    % dx_case2 = [
+    %     (L(1,1)*(0)*cos(theta) - L(2,2)*(-1)*sin(theta))*fn + ...
+    %     (L(1,1)*(1)*cos(theta) - L(2,2)*(0)*sin(theta))*ft;
+    % 
+    %     (L(1,1)*(0)*sin(theta) + L(2,2)*(-1)*cos(theta))*fn + ...
+    %     (L(1,1)*(1)*sin(theta) + L(2,2)*(0)*cos(theta))*ft;
+    % 
+    %     L(3,3)*(-radius*(0) + radius*(cos(phi)/sin(phi))*(-1))*fn + ...
+    %     L(3,3)*(-radius*(1) + radius*(cos(phi)/sin(phi))*(0))*ft;
+    % 
+    %     phi_dot];
+    % 
+    % dx_case3 = [
+    %     (L(1,1)*(cos(2*phi))*cos(theta) - L(2,2)*(sin(2*phi))*sin(theta))*fn + ...
+    %     (L(1,1)*(-sin(2*phi))*cos(theta) - L(2,2)*(cos(2*phi))*sin(theta))*ft;
+    % 
+    %     (L(1,1)*(cos(2*phi))*sin(theta) + L(2,2)*(sin(2*phi))*cos(theta))*fn + ...
+    %     (L(1,1)*(-sin(2*phi))*sin(theta) + L(2,2)*(cos(2*phi))*cos(theta))*ft;
+    % 
+    %     L(3,3)*(radius*sin(2*phi)*(cos(2*phi)) - (len/2+radius*cos(2*phi))*(sin(2*phi)))*fn + ...
+    %     L(3,3)*(radius*sin(2*phi)*(-sin(2*phi)) - (len/2+radius*cos(2*phi))*(cos(2*phi)))*ft;
+    % 
+    %     phi_dot];
+    % 
+    % dx_case4 = [
+    %     (L(1,1)*(0)*cos(theta) - L(2,2)*(1)*sin(theta))*fn + ...
+    %     (L(1,1)*(-1)*cos(theta) - L(2,2)*(0)*sin(theta))*ft;
+    % 
+    %     (L(1,1)*(0)*sin(theta) + L(2,2)*(1)*cos(theta))*fn + ...
+    %     (L(1,1)*(-1)*sin(theta) + L(2,2)*(0)*cos(theta))*ft;
+    % 
+    %     L(3,3)*(radius*(0) - radius*(cos(phi)/sin(phi))*(1))*fn + ...
+    %     L(3,3)*(radius*(-1) - radius*(cos(phi)/sin(phi))*(0))*ft;
+    % 
+    %     phi_dot];
+
+    % Define symbolic expressions for each case in the dynamics square
     dx_case1 = [
-        (L(1,1)*(-cos(2*phi_sym))*cos(theta_sym) - L(2,2)*(-sin(2*phi_sym))*sin(theta_sym))*fn_sym + ...
-        (L(1,1)*(sin(2*phi_sym))*cos(theta_sym) - L(2,2)*(-cos(2*phi_sym))*sin(theta_sym))*ft_sym;
+        (L(1,1)*(-1)*cos(theta) - L(2,2)*(0)*sin(theta))*fn + ...
+        (L(1,1)*(0)*cos(theta) - L(2,2)*(-1)*sin(theta))*ft;
         
-        (L(1,1)*(-cos(2*phi_sym))*sin(theta_sym) + L(2,2)*(-sin(2*phi_sym))*cos(theta_sym))*fn_sym + ...
-        (L(1,1)*(sin(2*phi_sym))*sin(theta_sym) + L(2,2)*(-cos(2*phi_sym))*cos(theta_sym))*ft_sym;
+        (L(1,1)*(-1)*sin(theta) + L(2,2)*(0)*cos(theta))*fn + ...
+        (L(1,1)*(0)*sin(theta) + L(2,2)*(-1)*cos(theta))*ft;
         
-        L(3,3)*(-radius*sin(2*phi_sym)*(-cos(2*phi_sym)) + (len/2+radius*cos(2*phi_sym))*(-sin(2*phi_sym)))*fn_sym + ...
-        L(3,3)*(-radius*sin(2*phi_sym)*(sin(2*phi_sym)) + (len/2+radius*cos(2*phi_sym))*(-cos(2*phi_sym)))*ft_sym;
+        L(3,3)*(-len/2 * (sin(phi)./cos(phi))*(-1) + (len/2)*(0))*fn + ...
+        L(3,3)*(-len/2 * (sin(phi)./cos(phi))*(0) + (len/2)*(-1))*ft;
         
-        phi_dot_sym];
+        phi_dot];
 
     dx_case2 = [
-        (L(1,1)*(0)*cos(theta_sym) - L(2,2)*(-1)*sin(theta_sym))*fn_sym + ...
-        (L(1,1)*(1)*cos(theta_sym) - L(2,2)*(0)*sin(theta_sym))*ft_sym;
+        (L(1,1)*(0)*cos(theta) - L(2,2)*(-1)*sin(theta))*fn + ...
+        (L(1,1)*(1)*cos(theta) - L(2,2)*(0)*sin(theta))*ft;
 
-        (L(1,1)*(0)*sin(theta_sym) + L(2,2)*(-1)*cos(theta_sym))*fn_sym + ...
-        (L(1,1)*(1)*sin(theta_sym) + L(2,2)*(0)*cos(theta_sym))*ft_sym;
+        (L(1,1)*(0)*sin(theta) + L(2,2)*(-1)*cos(theta))*fn + ...
+        (L(1,1)*(1)*sin(theta) + L(2,2)*(0)*cos(theta))*ft;
 
-        L(3,3)*(-radius*(0) + radius*(cos(phi_sym)/sin(phi_sym))*(-1))*fn_sym + ...
-        L(3,3)*(-radius*(1) + radius*(cos(phi_sym)/sin(phi_sym))*(0))*ft_sym;
+        L(3,3)*(-len/2*(0) + len/2 * (cos(phi)./sin(phi))*(-1))*fn + ...
+        L(3,3)*(-len/2*(1) + len/2 * (cos(phi)./sin(phi))*(0))*ft;
 
-        phi_dot_sym];
-
+        phi_dot];
+    
     dx_case3 = [
-        (L(1,1)*(cos(2*phi_sym))*cos(theta_sym) - L(2,2)*(sin(2*phi_sym))*sin(theta_sym))*fn_sym + ...
-        (L(1,1)*(-sin(2*phi_sym))*cos(theta_sym) - L(2,2)*(cos(2*phi_sym))*sin(theta_sym))*ft_sym;
+        (L(1,1)*(1)*cos(theta) - L(2,2)*(0)*sin(theta))*fn + ...
+        (L(1,1)*(0)*cos(theta) - L(2,2)*(1)*sin(theta))*ft;
 
-        (L(1,1)*(cos(2*phi_sym))*sin(theta_sym) + L(2,2)*(sin(2*phi_sym))*cos(theta_sym))*fn_sym + ...
-        (L(1,1)*(-sin(2*phi_sym))*sin(theta_sym) + L(2,2)*(cos(2*phi_sym))*cos(theta_sym))*ft_sym;
+        (L(1,1)*(1)*sin(theta) + L(2,2)*(0)*cos(theta))*fn + ...
+        (L(1,1)*(0)*sin(theta) + L(2,2)*(1)*cos(theta))*ft;
 
-        L(3,3)*(radius*sin(2*phi_sym)*(cos(2*phi_sym)) - (len/2+radius*cos(2*phi_sym))*(sin(2*phi_sym)))*fn_sym + ...
-        L(3,3)*(radius*sin(2*phi_sym)*(-sin(2*phi_sym)) - (len/2+radius*cos(2*phi_sym))*(cos(2*phi_sym)))*ft_sym;
+        L(3,3)*(len/2 * (sin(phi)./cos(phi))*(1) - (len/2)*(0))*fn + ...
+        L(3,3)*(len/2 * (sin(phi)./cos(phi))*(0) - (len/2)*(1))*ft;
 
-        phi_dot_sym];
+        phi_dot];
 
     dx_case4 = [
-        (L(1,1)*(0)*cos(theta_sym) - L(2,2)*(1)*sin(theta_sym))*fn_sym + ...
-        (L(1,1)*(-1)*cos(theta_sym) - L(2,2)*(0)*sin(theta_sym))*ft_sym;
+        (L(1,1)*(0)*cos(theta) - L(2,2)*(1)*sin(theta))*fn + ...
+        (L(1,1)*(-1)*cos(theta) - L(2,2)*(0)*sin(theta))*ft;
 
-        (L(1,1)*(0)*sin(theta_sym) + L(2,2)*(1)*cos(theta_sym))*fn_sym + ...
-        (L(1,1)*(-1)*sin(theta_sym) + L(2,2)*(0)*cos(theta_sym))*ft_sym;
+        (L(1,1)*(0)*sin(theta) + L(2,2)*(1)*cos(theta))*fn + ...
+        (L(1,1)*(-1)*sin(theta) + L(2,2)*(0)*cos(theta))*ft;
 
-        L(3,3)*(radius*(0) - radius*(cos(phi_sym)/sin(phi_sym))*(1))*fn_sym + ...
-        L(3,3)*(radius*(-1) - radius*(cos(phi_sym)/sin(phi_sym))*(0))*ft_sym;
+        L(3,3)*(len/2*(0) - len/2 * (cos(phi)./sin(phi))*(1))*fn + ...
+        L(3,3)*(len/2*(-1) - len/2 * (cos(phi)./sin(phi))*(0))*ft;
 
-        phi_dot_sym];
+        phi_dot];
 
     % Select the appropriate case based on phi value
     phi_val = x_star(4);
@@ -70,8 +123,8 @@ function [A, B] = linearize_system(x_star, u_star, L, radius, len)
     B_sym = jacobian(f_sym, u_vec);
 
     % Substitute x_star and u_star into the Jacobian matrices
-    A = double(subs(A_sym, {x_sym, y_sym, theta_sym, phi_sym, fn_sym, ft_sym, phi_dot_sym}, ...
+    A = double(subs(A_sym, {x, y, theta, phi, fn, ft, phi_dot}, ...
                     {x_star(1), x_star(2), x_star(3), x_star(4), u_star(1), u_star(2), u_star(3)}));
-    B = double(subs(B_sym, {x_sym, y_sym, theta_sym, phi_sym, fn_sym, ft_sym, phi_dot_sym}, ...
+    B = double(subs(B_sym, {x, y, theta, phi, fn, ft, phi_dot}, ...
                     {x_star(1), x_star(2), x_star(3), x_star(4), u_star(1), u_star(2), u_star(3)}));
 end
