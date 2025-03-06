@@ -8,18 +8,23 @@ close all
 clc
 
 % Object's parameters
+% len = 0.2;
+% wid = 0.15;
+% radius = 0.075;
+% height = 0.18;
+% mass = 4;
 len = 0.1;
 radius = 0.05;
-width = radius*2;
+wid = radius*2;
 height = 0.05;
 mass = 4;
 rectangular_prism_mass = mass * (2*len*radius) / (2*len*radius + pi*radius^2);
 cylinder_mass = mass * (pi*radius^2) / (2*len*radius + pi*radius^2);
-object_shape = "rectangular_capsule_prism";
-I_object = calculate_inertia_matrix(len, width, height, radius, ...
+object_shape = "rectangular_capsule_prism";  % rectangular_capsule_prism or rectangular_prism
+I_object = calculate_inertia_matrix(len, wid, height, radius, ...
                                     rectangular_prism_mass, cylinder_mass/2, ...
                                     object_shape);
-contact_area = calculate_contact_area(len, width, radius, object_shape);
+contact_area = calculate_contact_area(len, wid, radius, object_shape);
 
 % Limit surface model
 alpha = 0.63;
@@ -33,50 +38,50 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-duration = 5;
-x_0 = 0;
-x_f = 0.04 * duration;
-y_0 = 0;
-y_f = 0.04 * duration;
-
+x_0 = 0.3;
+y_0 = 0.55;
+x_f = -0.3;
+y_f = 1.15;
+v_constant = 0.04;
 timestep = 0.001;
+trajectory_radius = 0.2;
+
+v_constant_s = 0.055;
+x_center = x_0 - trajectory_radius;
+y_center = y_0;
+
 mpc_timestep = 0.04;
 timestep_parameter = mpc_timestep/timestep;
 control_frequency = 0.04;
 N = 20; 
-trajectory_radius = 0.2;
-v_constant = 0.055;
-x_center = 0;
-y_center = 0;
 
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         fifth_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
-% [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
-%                         constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
+% [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+%                         constant_velocity_trajectory_straight_line(v_constant, x_0, x_f, y_0, y_f, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         quarter_circle_trajectory(duration, trajectory_radius, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
-%                     constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant, timestep, x_center, y_center);
+%                     constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                           semi_circle_trajectory(duration, trajectory_radius, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
-%                     constant_velocity_semi_circle_trajectory(trajectory_radius, v_constant, timestep);
+%                     constant_velocity_semi_circle_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         s_shape_trajectory(duration, trajectory_radius, timestep);
 
 [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
-                    constant_velocity_s_shape_trajectory(trajectory_radius, v_constant, timestep, x_center, y_center);
+                    constant_velocity_s_shape_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
 
-% NOTE: change the initial guess that depends on the trajectory selected
-[fn_star, ft_star, phi_star_dot, phi_star, ~] = ...
+[fn_star, ft_star, phi_star_dot, phi_star] = ...
                           calculate_u_star_one_contact_point(L, x_star_dot, y_star_dot, theta_star, ...
-                          theta_star_dot, len, radius, timestep, duration);
+                          theta_star_dot, len, radius, timestep, duration, wid, object_shape);
 
 x_star = [x_star; y_star; theta_star; phi_star];
 u_star = [fn_star; ft_star; phi_star_dot];
@@ -97,10 +102,9 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-x(:,1) = [trajectory_radius+0.04, -0.04, 0, 3*pi/2];
-% x(:,1) = [0.06, -0.06, 0, 3*pi/2];
-[x_c, y_c, ~, n_c, t_c] = calculate_r_c(x(4,1), len, radius);
-x_pc_world(:,1) = x(1:2, 1) + [cos(x(3, 1)) -sin(x(3, 1)); sin(x(3, 1)) cos(x(3, 1))] *[x_c; y_c];
+x(:,1) = [x_0+0.04, y_0-0.04, 0, 3*pi/2];
+% x(:,1) = [x_0 - 0.06, y_0 - 0.06, 0, 3*pi/2];
+[x_c, y_c, ~, n_c, t_c] = calculate_r_c(x(4,1), len, radius, wid, object_shape);
 mpc_output = [];
 
 % MPC controller tunable parameters for 0.04s
@@ -110,7 +114,7 @@ mpc_output = [];
 
 % MPC controller tunable parameters for 0.04s
 Q = 100 * diag([5, 5, 0.01, 0]);
-QN = 40000 * diag([5, 5, 0.01, 0]);
+QN = 42000 * diag([5, 5, 0.01, 0]);
 R = 0.04 * diag([1, 1, 0.01]);
 
 %% Run simulation
@@ -132,11 +136,11 @@ for i = 1:floor(duration/timestep)
         simulation_type_flag = true;
         [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_constant_u(x_star, u_star,...
                                     N, i, timestep_parameter, control_frequency,...
-                                    u(:,i), x(:,i), len, radius, dp(:,i), timestep, ...
-                                    L, mass, I_object, simulation_type_flag);
+                                    u(:,i), x(:,i), len, wid, radius, dp(:,i), timestep, ...
+                                    L, mass, I_object, simulation_type_flag, object_shape);
         tic;
         [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star_mpc, u_star_mpc, dx(:,i), mu, L, ...
-                                           radius, len, N, mpc_timestep,  Q, QN, R, mpc_output, is_start);
+                                           radius, len, wid, N, mpc_timestep,  Q, QN, R, mpc_output, is_start, object_shape);
         solver_times(k) = round(toc*1000) / 1000;
         gurobi_solve_times(k) = round(gurobi_solve_time*1000) / 1000;
         mpc_timestamps(k) = time(i);
@@ -151,14 +155,14 @@ for i = 1:floor(duration/timestep)
     elseif (mod(i*timestep, control_frequency) == 0 || i == 2)
         [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_constant_u(x_star, u_star,...
                                     N, i, timestep_parameter, control_frequency,...
-                                    u(:,i-1), x(:,i), len, radius, dp(:,i), timestep, ...
-                                    L, mass, I_object, simulation_type_flag);
+                                    u(:,i-1), x(:,i), len, wid, radius, dp(:,i), timestep, ...
+                                    L, mass, I_object, simulation_type_flag, object_shape);
         du(:,i) = mpc_output(4*(N+1)+1 : 4*(N+1)+3);
         z(:,i) = mpc_output(4*(N+1)+3*N+1 : 4*(N+1)+3*N+3);
         u(:,i) = du(:,i) + u_star(:,i);
         tic;
-        [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star_mpc, u_star_mpc, dx_mpc, mu, L, ...
-                                           radius, len, N, mpc_timestep,  Q, QN, R, mpc_output, is_start);
+        [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star_mpc, u_star_mpc, dx(:,i), mu, L, ...
+                                           radius, len, wid, N, mpc_timestep,  Q, QN, R, mpc_output, is_start, object_shape);
         solver_times(k) = round(toc*1000) / 1000;
         gurobi_solve_times(k) = round(gurobi_solve_time*1000) / 1000;
         mpc_timestamps(k) = time(i);
@@ -172,7 +176,7 @@ for i = 1:floor(duration/timestep)
     end
     
     % Calculate parameters for the motion equation
-    w = calculate_motion_model_parameters(u(:,i), x(3,i), len, radius, x(4,i));
+    w = calculate_motion_model_parameters(u(:,i), x(3,i), len, radius, x(4,i), wid, object_shape);
     ground_friction_parameter = 1;
     [gr_frict, number] = calculate_friction_with_ground(L, dp(:,i), ground_friction_parameter);
 
@@ -192,9 +196,6 @@ for i = 1:floor(duration/timestep)
     x_ddot(1:3, i+1) = diag([mass mass I_object(3,3)]) \ (-gr_frict + w);
     x_dot(1:3, i+1) = x_dot(1:3, i) + x_ddot(1:3, i+1) .* timestep;
     x(1:3, i+1) = x(1:3, i) + x_dot(1:3, i+1) .* timestep;
-
-    [v_pc_body(:,i), v_pc_world(:,i)] = calculate_robot_velocity(L, x(:, i), len, radius, u(:,i));
-    x_pc_world(:,i+1) = x_pc_world(:,i) + v_pc_world(:,i)*timestep;
 
     time(i+1) = time(i) + timestep;
     dp(:,i+1) = [x_dot(1, i+1); x_dot(2, i+1); x_dot(3, i+1)];
@@ -233,7 +234,7 @@ contact_y_world = [];
 
 % Loop to plot contact points and unit vectors separately
 for i = 1:length(x(1,:))
-    [x_c, y_c, ~, n_c, t_c] = calculate_r_c(x(4,i), len, radius);
+    [x_c, y_c, ~, n_c, t_c] = calculate_r_c(x(4,i), len, radius, wid, object_shape);
 
     R = [cos(x(3,i)), -sin(x(3,i)); sin(x(3,i)), cos(x(3,i))];
     contact_point_global = R * [x_c; y_c] + [x(1,i); x(2,i)];
@@ -557,113 +558,6 @@ ylabel('Solver Time (s)');
 legend('Time By Matlab', 'Time By Gurobi');
 grid on;
 
-%% Plot the velocity of the robitic arm world frame
-
-figure;
-% First subplot for velocity on x-axis world frame and object frame
-subplot(3,1,1);
-plot(time(1:end-1), v_pc_world(1,:), 'LineWidth', 2);
-hold on;
-plot(time(1:end-1), contact_x_dot_world(2:end), 'LineWidth', 2);
-title('Velocity of robot on x-axis world frame');
-xlabel('Time (s)');
-ylabel('Velocity (m/s)');
-legend('Velocity x-axis robot', 'Velocity x-axis contact point');
-grid on;
-
-% Second subplot for velocity on y-axis world frame and object frame
-subplot(3,1,2);
-plot(time(1:end-1), v_pc_world(2,:), 'LineWidth', 2);
-hold on;
-plot(time(1:end-1), contact_y_dot_world(2:end), 'LineWidth', 2);
-title('Velocity of robot on y-axis world frame');
-xlabel('Time (s)');
-ylabel('Velocity (m/s)');
-legend('Velocity y-axis robot', 'Velocity y-axis contact point');
-grid on;
-
-% Second subplot for norm velocity world frame and object frame
-subplot(3,1,3);
-plot(time(1:end-1), sqrt(v_pc_world(1,:).^2 + v_pc_world(2,:).^2), 'LineWidth', 2);
-hold on;
-plot(time(1:end-1), sqrt(contact_x_dot_world(2:end).^2 + contact_y_dot_world(2:end).^2), 'LineWidth', 2);
-title('Norm of velocity of robot and contact point world frame');
-xlabel('Time (s)');
-ylabel('Velocity (m/s)');
-legend('Norm y-axis robot', 'Norm y-axis contact point');
-grid on;
-
-%% Plot the velocity of the robitic arm body frame
-
-figure;
-% First subplot for velocity on x-axis world frame and object frame
-subplot(3,1,1);
-plot(time(1:end-1), v_pc_body(1,:), 'LineWidth', 2);
-hold on;
-plot(time(1:end-1), contact_x_dot_body(2:end), 'LineWidth', 2);
-title('Velocity of robot on x-axis body frame');
-xlabel('Time (s)');
-ylabel('Velocity (m/s)');
-legend('Velocity x-axis robot', 'Velocity x-axis contact point');
-grid on;
-
-% Second subplot for velocity on y-axis world frame and object frame
-subplot(3,1,2);
-plot(time(1:end-1), v_pc_body(2,:), 'LineWidth', 2);
-hold on;
-plot(time(1:end-1), contact_y_dot_body(2:end), 'LineWidth', 2);
-title('Velocity of robot on y-axis body frame');
-xlabel('Time (s)');
-ylabel('Velocity (m/s)');
-legend('Velocity y-axis robot', 'Velocity y-axis contact point');
-grid on;
-
-% Second subplot for norm velocity world frame and object frame
-subplot(3,1,3);
-plot(time(1:end-1), sqrt(v_pc_body(1,:).^2 + v_pc_body(2,:).^2), 'LineWidth', 2);
-hold on;
-plot(time(1:end-1), sqrt(contact_x_dot_body(2:end).^2 + contact_y_dot_body(2:end).^2), 'LineWidth', 2);
-title('Norm of velocity of robot and contact point body frame');
-xlabel('Time (s)');
-ylabel('Velocity (m/s)');
-legend('Norm y-axis robot', 'Norm y-axis contact point');
-grid on;
-
-%% Plot the position of the robitic arm over time
-
-figure;
-% First subplot for potistion on x-axis world frame
-subplot(3,1,1);
-plot(time(1:end), x_pc_world(1,:), 'LineWidth', 2);
-hold on;
-plot(time(1:end), contact_x_world, 'LineWidth', 2);
-title('Position of robot on x-axis over time');
-xlabel('Time (s)');
-ylabel('Position (m)');
-legend('positions contact point x-axis', 'positions object x-axis');
-grid on;
-
-% Second subplot for potistion on y-axis world frame
-subplot(3,1,2);
-plot(time(1:end), x_pc_world(2,:), 'LineWidth', 2);
-hold on;
-plot(time(1:end), contact_y_world, 'LineWidth', 2);
-title('Position of robot on y-axis over time');
-xlabel('Time (s)');
-ylabel('Position (m)');
-legend('positions contact point y-axis', 'positions object y-axis');
-grid on;
-
-% Third subplot for norm of potistion world frame
-subplot(3,1,3);
-plot(x_pc_world(1,:), x_pc_world(2,:), 'LineWidth', 2);
-hold on;
-plot(contact_x_world, contact_y_world, 'LineWidth', 2);
-title('2D plot of position of robot over time');
-xlabel('x_c (m)');
-ylabel('y_c (m)');
-grid on;
-
 %% Path error metrics
 
 % [path_error, x_y_error, theta_error] = path_error_MIQP(x, x_star);
@@ -696,4 +590,4 @@ grid on;
 % grid on;
 % 
 % 
-
+% 

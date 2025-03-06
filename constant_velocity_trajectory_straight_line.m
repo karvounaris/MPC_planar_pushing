@@ -8,8 +8,12 @@
 %   - timestep
 %=======================================================================%
 
-function [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, t] = ...
-                        constant_velocity_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep)
+function [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, t, duration] = ...
+                        constant_velocity_trajectory_straight_line(v_constant, x_0, x_f, y_0, y_f, timestep)
+    
+    duration = abs((x_f - x_0) / v_constant);
+
+    duration = floor(duration*1000)/1000;
 
     % Time vector
     t = 0:timestep:duration;

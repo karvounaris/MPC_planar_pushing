@@ -5,8 +5,12 @@ function [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, t,
     % timestep: time step
     % x_center, y_center: center of the semicircular trajectory
     
-    % Duration of the trajectory (semicircle)
-    duration = pi * trajectory_radius / v_constant;
+    % Duration
+    if mod(pi * trajectory_radius, v_constant) == 0
+        duration = floor(pi * trajectory_radius / v_constant);
+    else
+        duration = floor(pi * trajectory_radius / v_constant)+1;
+    end
 
     % Time vector
     t = 0:timestep:duration;

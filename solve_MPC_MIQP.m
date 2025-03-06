@@ -1,5 +1,5 @@
 % Define the MIQP solver function with Gurobi optimization
-function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, mu, L, radius, len, N, timestep, Q, QN, R, x_start, is_start)
+function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, mu, L, radius, len, wid, N, timestep, Q, QN, R, x_start, is_start, object_shape)
     % Q = 10 * diag([3, 3, 0.1, 0]);    % State cost matrix
     % QN = 2000 * diag([3, 3, 0.1, 0]);  % Terminal state cost matrix
     % R = 0.5 * diag([1, 1, 0]);        % Input cost matrix
@@ -45,7 +45,7 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
         end
 
         % [Ai, Bi] = linearize_system(x_star(:, i), u_star(:, i), L, radius, len);
-        [A, B] = jacobian_function_system_linearization_capsule(x_star(:, i), u_star(:, i), L, radius, len);
+        [A, B] = jacobian_function_system_linearization(x_star(:, i), u_star(:, i), L, radius, len, wid, object_shape);
 
         % Dynamics constraints at each step
         % sys_c = ss(A, B, eye(size(A)), zeros(size(B))); % Continuous system
@@ -137,11 +137,11 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
     % Define W for each step and populate W_blocks
     for i = 1:(N/5+1)
         if i == 1 || i > N/5-1
-            W_blocks{i} = 0.1 * diag([0, 0, 0]);
+            W_blocks{i} = 0.01 * diag([1, 1, 1]);
         elseif i == 2
-            W_blocks{i} = 0.1 * diag([3, 3, 3]);
+            W_blocks{i} = 0.01 * diag([1, 1, 1]);
         elseif i > 2 && i <= N/5-1
-            W_blocks{i} = 0.1 * diag([1, 1, 1]);
+            W_blocks{i} = 0.01 * diag([1, 1, 1]);
         end
     end
 

@@ -8,8 +8,8 @@
 %     - radius, radius of object (for more check calculate_r_c.m)
 %=======================================================================%
 
-function [fn_star, ft_star, phi_star_dot, phi_star, timestep_number] = calculate_u_star_one_contact_point(L, x_star_dot, y_star_dot, theta_star, ...
-                                                        theta_star_dot, len, radius, timestep, duration)
+function [fn_star, ft_star, phi_star_dot, phi_star] = calculate_u_star_one_contact_point(L, x_star_dot, y_star_dot, theta_star, ...
+                                                        theta_star_dot, len, radius, timestep, duration, wid, object_shape)
     
 
     options = optimoptions('fsolve', ...
@@ -23,37 +23,12 @@ function [fn_star, ft_star, phi_star_dot, phi_star, timestep_number] = calculate
         'Diagnostics', 'off');
     
     for i = 1:(duration/timestep)+1
-        % initial_guess = [1, 1, 1.5]; % straight line
-        initial_guess = [5, 0.1, 1.5]; % quarter-circle, semi-circle, S-shape-trajectory
+        initial_guess = [5, 0.1, 1.5];
         [solution, fval, exitflag, output] = fsolve(@(u_star) system_equations ... 
                                             (u_star, L, x_star_dot(i), y_star_dot(i), ...
-                                            theta_star(i), theta_star_dot(i), len, radius), ...
+                                            theta_star(i), theta_star_dot(i), len, radius, wid, object_shape), ...
                                             initial_guess, options);
         disp(output);
-
-        % if exitflag ~= 1
-        %     options = optimoptions('fsolve', ...
-        %     'MaxFunctionEvaluations', 1e6, ...
-        %     'MaxIterations', 4e6, ...
-        %     'FiniteDifferenceType', 'central', ...
-        %     'FunctionTolerance', 1e-6, ...
-        %     'StepTolerance', 1e-6, ...
-        %     'FiniteDifferenceStepSize', 1e-4, ...
-        %     'Algorithm', 'levenberg-marquardt', ...  % 'trust-region-dogleg' or 'levenberg-marquardt'
-        %     'Diagnostics', 'off');
-        % 
-        %     [solution, fval, exitflag, output] = fsolve(@(u_star) system_equations ... 
-        %                                         (u_star, L, x_star_dot(i), y_star_dot(i), ...
-        %                                         theta_star(i), theta_star_dot(i), len, radius), ...
-        %                                         initial_guess, options);
-        %     disp(output);
-        % end
-
-        if exitflag ~= 1
-            timestep_number(i) = i;
-        else
-            timestep_number(i) = 0;
-        end
 
         fn_star(i) = exp(solution(1));
         ft_star(i) = solution(2);
@@ -78,7 +53,7 @@ end
 %     - radius, radius of object (for more check calculate_r_c.m)
 %=======================================================================%
 
-function output = system_equations(u_star, L, x_star_dot, y_star_dot, theta_star, theta_star_dot, len, radius)
+function output = system_equations(u_star, L, x_star_dot, y_star_dot, theta_star, theta_star_dot, len, radius, wid, object_shape)
 
     z1 = u_star(1);
     f_t_star = u_star(2);
@@ -87,7 +62,7 @@ function output = system_equations(u_star, L, x_star_dot, y_star_dot, theta_star
     f_n_star = exp(z1);
     phi_star = exp(z2);
 
-    [x_c, y_c, r_c, n_c, t_c] = calculate_r_c(phi_star, len, radius);
+    [x_c, y_c, r_c, n_c, t_c] = calculate_r_c(phi_star, len, radius, wid, object_shape);
 
     a = n_c(1);
     b = n_c(2);

@@ -5,8 +5,11 @@ function [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, t,
     % timestep: time step
     % x_center, y_center: center of the circle
 
-    % Duration of the trajectory (quarter circle)
-    duration = (pi/2) * trajectory_radius / v_constant;
+    if mod((pi/2) * trajectory_radius, v_constant) == 0
+        duration = floor((pi/2) * trajectory_radius / v_constant);
+    else
+        duration = floor((pi/2) * trajectory_radius / v_constant)+1;
+    end
 
     % Time vector
     t = 0:timestep:duration;

@@ -1,10 +1,10 @@
 function [x_star_mpc, u_star_mpc, dx_mpc] = create_mpc_star_constant_u(x_star, u_star, ...
                                     N, iteration, timestep_parameter, control_frequency,...
-                                    u, x, len, radius, dp, timestep, L, mass, I_object, simulation_type_flag)
+                                    u, x, len, wid, radius, dp, timestep, L, mass, I_object, simulation_type_flag, object_shape)
     dx_mpc = [0; 0; 0];
     if iteration ~= 1 && simulation_type_flag == true
         for i = 1:control_frequency/timestep
-            w = calculate_motion_model_parameters(u, x(3,i), len, radius, x(4,i));
+            w = calculate_motion_model_parameters(u, x(3,i), len, radius, x(4,i), wid, object_shape);
             ground_friction_parameter = 1;
             [gr_frict, ~] = calculate_friction_with_ground(L, dp(:,i), ground_friction_parameter);
         

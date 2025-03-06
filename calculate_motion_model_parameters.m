@@ -7,7 +7,7 @@
 %     - phi
 %========================================================================%
 
-function wrench = calculate_motion_model_parameters(u, theta, len, radius, phi)
+function wrench = calculate_motion_model_parameters(u, theta, len, radius, phi, wid, object_shape)
 
 % Set the control input
 u_f = u(1:2);
@@ -19,7 +19,7 @@ R = [cos(theta) -sin(theta) 0;
 
 % Calculate wrench from all the contact points to the object relative to
 % F_a
-[x_c, y_c, ~, n_c, t_c] = calculate_r_c(phi, len, radius);
+[x_c, y_c, ~, n_c, t_c] = calculate_r_c(phi, len, radius, wid, object_shape);
 
 J_c =  [1 0 -y_c;
         0 1 x_c];
