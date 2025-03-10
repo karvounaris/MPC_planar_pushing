@@ -1,8 +1,7 @@
 % Define the MIQP solver function with Gurobi optimization
-function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, mu, L, radius, len, wid, N, timestep, Q, QN, R, x_start, is_start, object_shape)
-    % Q = 10 * diag([3, 3, 0.1, 0]);    % State cost matrix
-    % QN = 2000 * diag([3, 3, 0.1, 0]);  % Terminal state cost matrix
-    % R = 0.5 * diag([1, 1, 0]);        % Input cost matrix
+function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, mu, L, radius, ...
+                                                          len, wid, N, timestep, Q, QN, R, W, ...
+                                                          x_start, is_start, object_shape)
     h = timestep;                     % Timestep
     M = 50;                          % Big-M constant
 
@@ -28,13 +27,13 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
             beq_binary = 1;
             Aeq = [Aeq; Aeq_binary];
             beq = [beq; beq_binary];
-        elseif i + 4 == N + 1
-            j = j + 1;
-            % Binary constraint z1 + z2 + z3 = 1
-            Aeq_binary = [zeros(1, 4*(N+1) + 3*N), zeros(1, 3*(j-1)), 1, 1, 1, zeros(1, 3*((N/5+1)-j))];
-            beq_binary = 1;
-            Aeq = [Aeq; Aeq_binary];
-            beq = [beq; beq_binary];
+        % elseif i + 4 == N + 1
+        %     j = j + 1;
+        %     % Binary constraint z1 + z2 + z3 = 1
+        %     Aeq_binary = [zeros(1, 4*(N+1) + 3*N), zeros(1, 3*(j-1)), 1, 1, 1, zeros(1, 3*((N/5+1)-j))];
+        %     beq_binary = 1;
+        %     Aeq = [Aeq; Aeq_binary];
+        %     beq = [beq; beq_binary];
         elseif mod(i, 5) == 2
             j = j + 1;
             % Binary constraint z1 + z2 + z3 = 1
@@ -132,18 +131,18 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
     % Initialize block diagonal components for model.Q
     Q_blocks = repmat({Q}, 1, N-1);  % Q for each time step except the terminal state
     R_blocks = repmat({R}, 1, N);    % R for each time step for control input costs
-    W_blocks = cell(1, (N/5+1));           % Initialize W_blocks as a cell array
+    W_blocks = repmat({W}, 1, (N/5+1)); % Initialize W_blocks as a cell array
 
     % Define W for each step and populate W_blocks
-    for i = 1:(N/5+1)
-        if i == 1 || i > N/5-1
-            W_blocks{i} = 0.01 * diag([1, 1, 1]);
-        elseif i == 2
-            W_blocks{i} = 0.01 * diag([1, 1, 1]);
-        elseif i > 2 && i <= N/5-1
-            W_blocks{i} = 0.01 * diag([1, 1, 1]);
-        end
-    end
+    % for i = 1:(N/5+1)
+    %     if i == 1 || i > N/5-1
+    %         W_blocks{i} = 0.1 * diag([1, 1, 1]);
+    %     elseif i == 2
+    %         W_blocks{i} = 0.1 * diag([1, 1, 1]);
+    %     elseif i > 2 && i <= N/5-1
+    %         W_blocks{i} = 0.1 * diag([1, 1, 1]);
+    %     end
+    % end
 
     % Initialize the Gurobi model as an empty structure
     model = struct();

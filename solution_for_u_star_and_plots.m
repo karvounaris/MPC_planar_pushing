@@ -8,8 +8,8 @@ clear
 close all
 clc
 
-len = 0.2;
-wid = 0.15;
+len = 0.205;
+wid = 0.155;
 radius = 0.075;
 height = 0.18;
 mass = 4;
@@ -38,12 +38,12 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-x_0 = 0.2;
-y_0 = 0.6;
-x_f = -0.2;
-y_f = 1;
+x_0 = 0.6;
+y_0 = -0.2;
+x_f = 1;
+y_f = 0.2;
 v_constant = 0.04;
-timestep = 0.001;
+timestep = 0.002;
 trajectory_radius = 0.2;
 
 v_constant_s = 0.055;

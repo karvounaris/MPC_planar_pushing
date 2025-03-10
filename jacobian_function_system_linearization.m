@@ -81,7 +81,7 @@ function [A, B] = jacobian_function_system_linearization(x_star, u_star, L, radi
         if ((phi_val >= 0) && (phi_val < alpha)) || ((phi_val >= 2*pi - alpha) && (phi_val < 2*pi))
             A =[0, 0, ft*l2*cos(theta) + fn*l1*sin(theta), 0;
                 0, 0, ft*l2*sin(theta) - fn*l1*cos(theta), 0;
-                0, 0, 0, (fn*l3*len*(tan(phi)^2 + 1))/2;
+                0, 0, 0, (fn*l3*wid)/2 + (fn*l3*wid*cos(phi)^2)/(2*sin(phi)^2);
                 0, 0, 0, 0];
     
             B = [-l1*cos(theta), l2*sin(theta), 0;
@@ -99,7 +99,7 @@ function [A, B] = jacobian_function_system_linearization(x_star, u_star, L, radi
             % Matrix B
             B = [l2*sin(theta), l1*cos(theta), 0;
                 -l2*cos(theta), l1*sin(theta), 0;
-                -(wid*cos(phi))/(2*sin(phi)), -(l3*wid)/2, 0;
+                -(l3*wid*cos(phi))/(2*sin(phi)), -(l3*wid)/2, 0;
                 0, 0, 1];
     
         elseif (phi_val >= pi - alpha) && (phi_val < pi + alpha)
@@ -119,13 +119,13 @@ function [A, B] = jacobian_function_system_linearization(x_star, u_star, L, radi
             % Matrix A
             A = [0, 0, ft*l1*sin(theta) - fn*l2*cos(theta), 0;
                  0, 0, - ft*l1*cos(theta) - fn*l2*sin(theta), 0;
-                 0, 0, 0, (fn*wid)/2 + (fn*wid*cos(phi)^2)/(2*sin(phi)^2);
+                 0, 0, 0, (fn*l3*wid)/2 + (fn*l3*wid*cos(phi)^2)/(2*sin(phi)^2);
                  0, 0, 0, 0];
             
             % Matrix B
             B = [-l2*sin(theta), -l1*cos(theta), 0;
                  l2*cos(theta), -l1*sin(theta), 0;
-                 -(wid*cos(phi))/(2*sin(phi)), -(l3*wid)/2, 0;
+                 -(l3*wid*cos(phi))/(2*sin(phi)), -(l3*wid)/2, 0;
                  0, 0, 1];
         end
     end

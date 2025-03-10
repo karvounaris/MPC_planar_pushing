@@ -1,7 +1,7 @@
-function [A, B] = linearize_system(x_star, u_star, L, radius, len, width)
+function [A, B] = linearize_system(x_star, u_star, L, radius, len, wid)
     % Define symbolic variables for state and input
-    alpha = atan(width/len);
-    syms x y theta phi fn ft phi_dot L l1 l2 l3 len width
+    alpha = atan(wid/len);
+    syms x y theta phi fn ft phi_dot L l1 l2 l3 len wid
     x_vec = [x; y; theta; phi];
     u_vec = [fn; ft; phi_dot];
 
@@ -92,8 +92,8 @@ function [A, B] = linearize_system(x_star, u_star, L, radius, len, width)
                 (L(1,1)*sin(theta)*0 + L(2,2)*cos(theta)*(-1))*fn + ...
                 (L(1,1)*sin(theta)*1 + L(2,2)*cos(theta)*0)*ft; ...
                 
-                (L(3,3)*(-width/2)*0 + (width/2*(cos(phi)/sin(phi)*(-1))))*fn + ...
-                (L(3,3)*(-width/2)*1 + (width/2*(cos(phi)/sin(phi)*(0))))*ft;
+                (L(3,3)*((-wid/2)*0 + (wid/2*(cos(phi)/sin(phi)*(-1)))))*fn + ...
+                (L(3,3)*((-wid/2)*1 + (wid/2*(cos(phi)/sin(phi)*(0)))))*ft;
                 
                 phi_dot];
 
@@ -114,8 +114,8 @@ function [A, B] = linearize_system(x_star, u_star, L, radius, len, width)
                 (L(1,1)*sin(theta)*0 + L(2,2)*cos(theta)*1)*fn + ...
                 (L(1,1)*sin(theta)*(-1) + L(2,2)*cos(theta)*0)*ft; ...
                 
-                (L(3,3)*(width/2)*0 + (-width/2*(cos(phi)/sin(phi)*1)))*fn + ...
-                (L(3,3)*(width/2)*(-1) + (-width/2*(cos(phi)/sin(phi)*0)))*ft;
+                (L(3,3)*((wid/2)*0 + (-wid/2*(cos(phi)/sin(phi)*1))))*fn + ...
+                (L(3,3)*((wid/2)*(-1) + (-wid/2*(cos(phi)/sin(phi)*0))))*ft;
                 
                 phi_dot];
 

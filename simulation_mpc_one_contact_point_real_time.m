@@ -57,8 +57,8 @@ N = 20;
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         fifth_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
-% [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
-%                         constant_velocity_trajectory_straight_line(v_constant, x_0, x_f, y_0, y_f, timestep);
+[x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+                        constant_velocity_trajectory_straight_line(v_constant, x_0, x_f, y_0, y_f, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         quarter_circle_trajectory(duration, trajectory_radius, timestep);
@@ -75,8 +75,8 @@ N = 20;
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         s_shape_trajectory(duration, trajectory_radius, timestep);
 
-[x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
-                    constant_velocity_s_shape_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+%                     constant_velocity_s_shape_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
 
 [fn_star, ft_star, phi_star_dot, phi_star] = ...
                           calculate_u_star_one_contact_point(L, x_star_dot, y_star_dot, theta_star, ...
@@ -101,20 +101,22 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-x(:,1) = [x_0+0.04, y_0-0.04, 0, 3*pi/2];
-% x(:,1) = [x_0 - 0.06, y_0 - 0.06, 0, 3*pi/2];
+% x(:,1) = [x_0+0.04, y_0-0.04, 0, 3*pi/2];
+x(:,1) = [x_0 - 0.06, y_0 - 0.06, 0, 3*pi/2];
 [x_c, y_c, ~, n_c, t_c] = calculate_r_c(x(4,1), len, radius, wid, object_shape);
 mpc_output = [];
 
 % MPC controller tunable parameters for 0.04s
-% Q = 80 * diag([5, 5, 0.1, 0]);
-% QN = 42000 * diag([5, 5, 0.1, 0]);
-% R = 0.02 * diag([1, 1, 0.01]);
+Q = 80 * diag([5, 5, 0.1, 0]);
+QN = 42000 * diag([5, 5, 0.1, 0]);
+R = 0.02 * diag([1, 1, 0.01]);
+W = 0.01 * diag([1, 1, 1]);
 
 % MPC controller tunable parameters for 0.04s
-Q = 100 * diag([5, 5, 0.01, 0]);
-QN = 40000 * diag([5, 5, 0.01, 0]);
-R = 0.04 * diag([1, 1, 0.01]);
+% Q = 100 * diag([5, 5, 0.01, 0]);
+% QN = 40000 * diag([5, 5, 0.01, 0]);
+% R = 0.04 * diag([1, 1, 0.01]);
+% W = 0.01 * diag([1, 1, 1]);
 
 %% Run simulation
 
@@ -139,7 +141,7 @@ for i = 1:floor(duration/timestep)
                                     L, mass, I_object, simulation_type_flag, object_shape);
         tic;
         [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star_mpc, u_star_mpc, dx(:,i), mu, L, ...
-                                           radius, len, wid, N, mpc_timestep,  Q, QN, R, mpc_output, is_start, object_shape);
+                                           radius, len, wid, N, mpc_timestep,  Q, QN, R, W, mpc_output, is_start, object_shape);
         solver_times(k) = round(toc*1000) / 1000;
         gurobi_solve_times(k) = round(gurobi_solve_time*1000) / 1000;
         mpc_timestamps(k) = time(i);
@@ -162,7 +164,7 @@ for i = 1:floor(duration/timestep)
         u(:,i) = du(:,i) + u_star(:,i);
         tic;
         [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star_mpc, u_star_mpc, dx(:,i), mu, L, ...
-                                           radius, len, wid, N, mpc_timestep,  Q, QN, R, mpc_output, is_start, object_shape);
+                                           radius, len, wid, N, mpc_timestep,  Q, QN, R, W, mpc_output, is_start, object_shape);
         solver_times(k) = round(toc*1000) / 1000;
         gurobi_solve_times(k) = round(gurobi_solve_time*1000) / 1000;
         mpc_timestamps(k) = time(i);
@@ -589,5 +591,3 @@ grid on;
 % 
 % grid on;
 % 
-
-

@@ -17,24 +17,14 @@ function r_c_partial_derivative_phi = calculate_r_c_derivatives(phi, radius, len
 
     % Normalize phi to [0, 2*pi)
     phi = mod(phi, 2*pi);
-
-    % Predefine
-    x_c_partial_derivative_phi = 0;
-    y_c_partial_derivative_phi = 0;
     
-    % -- 1) RECTANGULAR CAPSULE PRISM CASE ------------------------------    
     if object_shape == "rectangular_capsule_prism"
-        % We reuse your piecewise logic.  In that shape, for phi in [0, pi/4),
-        % x_c = len/2 + radius*cos(2phi),  y_c = radius*sin(2phi), etc.
-        % So we just differentiate those expressions w.r.t. phi.
 
         if phi >= 0 && phi < pi/4
             x_c_partial_derivative_phi = -2 * radius * sin(2*phi);
             y_c_partial_derivative_phi =  2 * radius * cos(2*phi);
 
         elseif phi >= pi/4 && phi < 3*pi/4
-            % x_c = radius * (cos(phi)/sin(phi)) = radius*cot(phi)
-            % derivative of  r * cot(phi) = -r * csc^2(phi)
             x_c_partial_derivative_phi = -radius * csc(phi)^2; 
             y_c_partial_derivative_phi =  0;
 
@@ -51,21 +41,11 @@ function r_c_partial_derivative_phi = calculate_r_c_derivatives(phi, radius, len
             y_c_partial_derivative_phi =  2 * radius * cos(2*phi);
 
         else
-            % Out-of-range or corner case
             x_c_partial_derivative_phi = 0;
             y_c_partial_derivative_phi = 0;
         end
 
-    % -- 2) RECTANGULAR PRISM CASE --------------------------------------
     elseif object_shape == "rectangular_prism"
-        % We match the piecewise definition you used for x_c, y_c:
-        %   alpha = atan(width/len)
-        %   if ((phi >= 0) && (phi < alpha)) || ((phi >= 2*pi-alpha) && (phi < 2*pi))
-        %       x_c = +len/2
-        %       y_c = (len/2)*tan(phi)
-        %   elseif ...
-        %       etc.
-        % Then just differentiate w.r.t. phi.
 
         alpha = atan(width/len);
 
