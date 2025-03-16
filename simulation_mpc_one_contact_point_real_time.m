@@ -12,16 +12,17 @@ clc
 % radius = 0.075;
 % height = 0.18;
 % mass = 4;
+% object_shape = "rectangular_prism";
 len = 0.1;
 radius = 0.05;
 wid = radius*2;
 height = 0.05;
 mass = 4;
+object_shape = "rectangular_capsule_prism";
 rectangular_prism_mass = mass * (2*len*radius) / (2*len*radius + pi*radius^2);
 cylinder_mass = mass * (pi*radius^2) / (2*len*radius + pi*radius^2);
-object_shape = "rectangular_capsule_prism";  % rectangular_capsule_prism or rectangular_prism
 I_object = calculate_inertia_matrix(len, wid, height, radius, ...
-                                    rectangular_prism_mass, cylinder_mass/2, ...
+                                    rectangular_prism_mass, cylinder_mass/2, mass, ...
                                     object_shape);
 contact_area = calculate_contact_area(len, wid, radius, object_shape);
 
@@ -37,11 +38,11 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-x_0 = 0.8;
+x_0 = 0;
 y_0 = 0;
-x_f = 1;
+x_f = 0.2;
 y_f = 0.2;
-v_constant = 0.04;
+v_constant = 0.055;
 timestep = 0.002;
 trajectory_radius = 0.2;
 
@@ -111,12 +112,14 @@ x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 5*pi/4];
 % x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 7*pi/4];
 mpc_output = [];
 
+% for the straight line change the upper and bottom limits for phi_dot to -3 +3
 % MPC controller tunable parameters
 Q = 80 * diag([5, 5, 0.1, 0.01]);
 QN = 42000 * diag([5, 5, 0.1, 0.01]);
 R = 0.02 * diag([1, 1, 0.01]);
 W = 0.01 * diag([0.95, 1, 1]);
 
+% for the s shape change the upper and bottom limits for phi_dot to -2 +2
 % MPC controller tunable parameters
 % Q = 80 * diag([5, 5, 0.1, 0.01]);
 % QN = 42000 * diag([5, 5, 0.1, 0.01]);

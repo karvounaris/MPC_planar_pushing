@@ -7,22 +7,22 @@ clear
 close all
 clc
 
-% Object's parameters
 % len = 0.2;
 % wid = 0.15;
 % radius = 0.075;
 % height = 0.18;
 % mass = 4;
+% object_shape = "rectangular_prism";
 len = 0.1;
 radius = 0.05;
 wid = radius*2;
 height = 0.05;
 mass = 4;
+object_shape = "rectangular_capsule_prism";
 rectangular_prism_mass = mass * (2*len*radius) / (2*len*radius + pi*radius^2);
 cylinder_mass = mass * (pi*radius^2) / (2*len*radius + pi*radius^2);
-object_shape = "rectangular_capsule_prism";  % rectangular_capsule_prism or rectangular_prism
 I_object = calculate_inertia_matrix(len, wid, height, radius, ...
-                                    rectangular_prism_mass, cylinder_mass/2, ...
+                                    rectangular_prism_mass, cylinder_mass/2, mass, ...
                                     object_shape);
 contact_area = calculate_contact_area(len, wid, radius, object_shape);
 
@@ -38,12 +38,12 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-x_0 = 0.3;
-y_0 = 0.55;
-x_f = -0.3;
-y_f = 1.15;
-v_constant = 0.04;
-timestep = 0.001;
+x_0 = 0.8;
+y_0 = 0;
+x_f = 1;
+y_f = 0.2;
+v_constant = 0.055;
+timestep = 0.002;
 trajectory_radius = 0.2;
 
 v_constant_s = 0.055;
@@ -71,7 +71,7 @@ N = 20;
 %                           semi_circle_trajectory(duration, trajectory_radius, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
-%                     constant_velocity_semi_circle_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
+%                     constant_velocity_semi_circle_trajectory(trajectory_radius, v_constant_s, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         s_shape_trajectory(duration, trajectory_radius, timestep);
@@ -85,7 +85,14 @@ N = 20;
 
 x_star = [x_star; y_star; theta_star; phi_star];
 u_star = [fn_star; ft_star; phi_star_dot];
-% u_star = [fn_star - 2 * ones(size(fn_star)); ft_star; phi_star_dot];
+for i = 1:length(u_star(3,:))
+    if u_star(3,i) ~= 0
+        u_star(3,i) = 0;
+    end
+end
+
+x_star = [x_star; y_star; theta_star; phi_star];
+u_star = [fn_star; ft_star; phi_star_dot];
 % Define the extension for x_star and u_star
 x_star_extension = repmat(x_star(:, end), 1, control_frequency/timestep + N*timestep_parameter); % Repeat last column of x_star N times
 u_star_extension = zeros(size(u_star, 1), control_frequency/timestep + N*timestep_parameter);    % Create zero matrix for u_star

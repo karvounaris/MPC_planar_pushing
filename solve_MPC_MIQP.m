@@ -155,10 +155,10 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
     model.ub =  inf * ones(4 * (N+1), 1);
 
     % Define bounds for inputs (u = [fn, ft, phi_dot])
-    % lb_u = [-30; -30; -3];
-    % ub_u = [0;  30;  3];
-    lb_u = [-30; -30; -2];
-    ub_u = [0;  30;  2];
+    lb_u = [-30; -30; -3];
+    ub_u = [0;  30;  3];
+    % lb_u = [-30; -30; -2];
+    % ub_u = [0;  30;  2];
 
     % Repeat input bounds for N steps
     model.lb = [model.lb; repmat(lb_u, N, 1)];
