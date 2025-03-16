@@ -37,12 +37,12 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-x_0 = 0.3;
-y_0 = 0.55;
-x_f = -0.3;
-y_f = 1.15;
+x_0 = 0.8;
+y_0 = 0;
+x_f = 1;
+y_f = 0.2;
 v_constant = 0.04;
-timestep = 0.001;
+timestep = 0.002;
 trajectory_radius = 0.2;
 
 v_constant_s = 0.055;
@@ -84,7 +84,11 @@ N = 20;
 
 x_star = [x_star; y_star; theta_star; phi_star];
 u_star = [fn_star; ft_star; phi_star_dot];
-% u_star = [fn_star - 2 * ones(size(fn_star)); ft_star; phi_star_dot];
+for i = 1:length(u_star(3,:))
+    if u_star(3,i) ~= 0
+        u_star(3,i) = 0;
+    end
+end
 % Define the extension for x_star and u_star
 x_star_extension = repmat(x_star(:, end), 1, control_frequency/timestep + N*timestep_parameter); % Repeat last column of x_star N times
 u_star_extension = zeros(size(u_star, 1), control_frequency/timestep + N*timestep_parameter);    % Create zero matrix for u_star
@@ -101,22 +105,23 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-% x(:,1) = [x_0+0.04, y_0-0.04, 0, 3*pi/2];
-x(:,1) = [x_0 - 0.06, y_0 - 0.06, 0, 3*pi/2];
-[x_c, y_c, ~, n_c, t_c] = calculate_r_c(x(4,1), len, radius, wid, object_shape);
+x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 5*pi/4];
+% x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 6.5*pi/4];
+% x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 5*pi/4];
+% x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 7*pi/4];
 mpc_output = [];
 
-% MPC controller tunable parameters for 0.04s
-Q = 80 * diag([5, 5, 0.1, 0]);
-QN = 42000 * diag([5, 5, 0.1, 0]);
+% MPC controller tunable parameters
+Q = 80 * diag([5, 5, 0.1, 0.01]);
+QN = 42000 * diag([5, 5, 0.1, 0.01]);
 R = 0.02 * diag([1, 1, 0.01]);
-W = 0.01 * diag([1, 1, 1]);
+W = 0.01 * diag([0.95, 1, 1]);
 
-% MPC controller tunable parameters for 0.04s
-% Q = 100 * diag([5, 5, 0.01, 0]);
-% QN = 40000 * diag([5, 5, 0.01, 0]);
-% R = 0.04 * diag([1, 1, 0.01]);
-% W = 0.01 * diag([1, 1, 1]);
+% MPC controller tunable parameters
+% Q = 80 * diag([5, 5, 0.1, 0.01]);
+% QN = 42000 * diag([5, 5, 0.1, 0.01]);
+% R = 0.02 * diag([1, 1, 0.01]);
+% W = 0.01 * diag([0.95, 1, 1]);
 
 %% Run simulation
 
@@ -125,6 +130,7 @@ dp = [0; 0; 0];
 time = 0;
 mpc_timestamps = 0;
 solver_times = 0;
+last_time_MIQP_start = 0;
 
 ground_friction = zeros(3,1);
 is_start = 1;
@@ -135,6 +141,7 @@ for i = 1:floor(duration/timestep)
     
     if i == 1
         simulation_type_flag = false;
+        last_time_MIQP_start = i * timestep;
         [x_star_mpc, u_star_mpc, ~] = create_mpc_star_constant_u(x_star, u_star,...
                                     N, i, timestep_parameter, control_frequency,...
                                     u(:,i), x(:,i), len, wid, radius, dp(:,i), timestep, ...
@@ -153,12 +160,12 @@ for i = 1:floor(duration/timestep)
         z(:,i) = mpc_output(4*(N+1)+3*N+1 : 4*(N+1)+3*N+3);
         u(:,i) = du(:,i) + u_star(:,i);
         k = k + 1;
-    elseif (mod(i*timestep, control_frequency) == 0 || i == 2)
+    elseif (i * timestep - last_time_MIQP_start > gurobi_solve_times(end) || i == 2)
+        last_time_MIQP_start = i * timestep;
         [x_star_mpc, u_star_mpc, ~] = create_mpc_star_constant_u(x_star, u_star,...
                                     N, i, timestep_parameter, control_frequency,...
                                     u(:,i-1), x(:,i), len, wid, radius, dp(:,i), timestep, ...
                                     L, mass, I_object, simulation_type_flag, object_shape);
-        dx_mpc = dx(:,i);
         du(:,i) = mpc_output(4*(N+1)+1 : 4*(N+1)+3);
         z(:,i) = mpc_output(4*(N+1)+3*N+1 : 4*(N+1)+3*N+3);
         u(:,i) = du(:,i) + u_star(:,i);
@@ -481,14 +488,14 @@ figure;
 subplot(2, 1, 1);
 plot(time(1:end), x(4,:), 'LineWidth', 2);
 xlabel('Time (s)');
-ylabel('$\bar{\phi}$ (rad)', 'Interpreter', 'latex');
+ylabel('$\phi$ (rad)', 'Interpreter', 'latex');
 grid on;
 
 % Second subplot for phi_dot over time
 subplot(2, 1, 2);
 plot(time(1:end), x_dot(4,:), 'LineWidth', 2);
 xlabel('Time (s)');
-ylabel('$\dot{\bar{\phi}}$ (rad/s)', 'Interpreter', 'latex');
+ylabel('$\dot{\phi}$ (rad/s)', 'Interpreter', 'latex');
 grid on;
 
 

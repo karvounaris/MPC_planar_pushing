@@ -39,7 +39,7 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
 x_0 = 0.6;
-y_0 = -0.2;
+y_0 = -0.3;
 x_f = 1;
 y_f = 0.2;
 v_constant = 0.04;
@@ -83,10 +83,16 @@ N = 20;
                           calculate_u_star_one_contact_point(L, x_star_dot, y_star_dot, theta_star, ...
                           theta_star_dot, len, radius, timestep, duration, wid, object_shape);
 
+for i = 1:length(phi_star_dot)
+    if phi_star_dot(i) ~= 0
+        phi_star_dot(i) = 0;
+    end
+end
+
 T = table(x_star(:), y_star(:), theta_star(:), phi_star(:), fn_star(:), ft_star(:), phi_star_dot(:), ...
           'VariableNames', {'x_star', 'y_star', 'theta_star', 'phi_star', 'fn_star', 'ft_star', 'phi_star_dot'});
 
-writetable(T, 'simulation_data_straight.csv');
+writetable(T, 'simulation_data_straight_line.csv');
 % writetable(T, 'simulation_data_quarter_circle_20cm_radius.csv');
 % writetable(T, 'simulation_data_semi_circle_20cm_radius.csv');
 % writetable(T, 'simulation_data_s_shape_20cm_radius.csv')

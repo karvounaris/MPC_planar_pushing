@@ -198,7 +198,7 @@ for i = 1:floor(duration/timestep)
     x_ddot(1:3, i+1) = diag([mass mass I_object(3,3)]) \ (-gr_frict + w);
     x_dot(1:3, i+1) = x_dot(1:3, i) + x_ddot(1:3, i+1) .* timestep;
     x(1:3, i+1) = x(1:3, i) + x_dot(1:3, i+1) .* timestep;
-
+    
     time(i+1) = time(i) + timestep;
     dp(:,i+1) = [x_dot(1, i+1); x_dot(2, i+1); x_dot(3, i+1)];
     
