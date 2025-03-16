@@ -166,7 +166,6 @@ figure;
 % First subplot for phi_star over time
 subplot(2, 1, 1);
 plot(time, phi_star, 'Linewidth', 2);
-title('phi star Over Time');
 xlabel('Time (s)');
 ylabel('phi star (rad)');
 grid on;
@@ -174,7 +173,6 @@ grid on;
 % Second subplot for phi_star_dot over time
 subplot(2, 1, 2);
 plot(time, phi_star_dot, 'Linewidth', 2);
-title('phi star Velocity Over Time');
 xlabel('Time (s)');
 ylabel('phi star dot (rad/s)');
 grid on;

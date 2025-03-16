@@ -7,18 +7,18 @@ clear
 close all
 clc
 
-% len = 0.2;
-% wid = 0.15;
-% radius = 0.075;
-% height = 0.18;
-% mass = 4;
-% object_shape = "rectangular_prism";
-len = 0.1;
-radius = 0.05;
-wid = radius*2;
-height = 0.05;
+len = 0.2;
+wid = 0.15;
+radius = 0.075;
+height = 0.18;
 mass = 4;
-object_shape = "rectangular_capsule_prism";
+object_shape = "rectangular_prism";
+% len = 0.1;
+% radius = 0.05;
+% wid = radius*2;
+% height = 0.05;
+% mass = 4;
+% object_shape = "rectangular_capsule_prism";
 rectangular_prism_mass = mass * (2*len*radius) / (2*len*radius + pi*radius^2);
 cylinder_mass = mass * (pi*radius^2) / (2*len*radius + pi*radius^2);
 I_object = calculate_inertia_matrix(len, wid, height, radius, ...
@@ -38,10 +38,10 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-x_0 = 0;
-y_0 = 0;
-x_f = 0.2;
-y_f = 0.2;
+x_0 = 0.5;
+y_0 = -0.3;
+x_f = 0.7;
+y_f = 0.1;
 v_constant = 0.055;
 timestep = 0.002;
 trajectory_radius = 0.2;
@@ -106,7 +106,7 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 5*pi/4];
+x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 6*pi/4];
 % x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 6.5*pi/4];
 % x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 5*pi/4];
 % x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 7*pi/4];
@@ -272,7 +272,7 @@ contact_handle = plot(contact_x_world, contact_y_world, 'r-', 'LineWidth', 2, 'D
 
 % Plot for j == 0 (green circles)
 % plot(contact_x_world(idx_0), contact_y_world(idx_0), 'go', 'MarkerSize', 2);
-plot(contact_x_world(idx_0), contact_y_world(idx_0), 'ro', 'MarkerSize', 2);
+% plot(contact_x_world(idx_0), contact_y_world(idx_0), 'ro', 'MarkerSize', 2);
 
 % plot(contact_x, contact_y, 'r-', 'LineWidth', 1.5, 'DisplayName', 'Contact Path');
 
@@ -600,4 +600,3 @@ grid on;
 % ylabel('$\bar{\theta}$ (rad)', 'Interpreter', 'latex');
 % 
 % grid on;
-% 

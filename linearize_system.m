@@ -70,10 +70,6 @@ function [A, B] = linearize_system(x_star, u_star, L, radius, len, wid)
     %     f_sym = dx_case4;
     % end
 
-    x_c = len/2;
-    y_c = (len/2)*tan(phi);
-    n_c = [-1; 0];
-    t_c = [0; -1];
     % Define symbolic expressions for each case in the dynamics square
     dx_case1 = [(L(1,1)*cos(theta)*(-1) - L(2,2)*sin(theta)*0)*fn + ...
                 (L(1,1)*cos(theta)*0 - L(2,2)*sin(theta)*(-1))*ft; ...
