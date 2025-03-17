@@ -121,27 +121,27 @@ figure;
 subplot(4,1,1);
 plot(time, x_dot(1,:), 'b-', 'LineWidth', 2);
 xlabel('Time (s)');
-ylabel('x (m/s)');
+ylabel('$\dot{x}$ (m/s)', 'Interpreter', 'latex');
 grid on;
 
 % y / y_star
 subplot(4,1,2);
 plot(time, x_dot(2,:), 'b-', 'LineWidth', 2);
 xlabel('Time (s)');
-ylabel('y (m/s)');
+ylabel('$\dot{y}$ (m/s)', 'Interpreter', 'latex');
 grid on;
 
 % theta / theta_star
 subplot(4,1,3);
 plot(time, x_dot(3,:), 'b-', 'LineWidth', 2);
 xlabel('Time (s)');
-ylabel('$\theta$ (rad/s)', 'Interpreter', 'latex');
+ylabel('$\dot{\theta}$ (m/s)', 'Interpreter', 'latex');
 grid on;
 
 subplot(4,1,4);
 plot(time, x_dot(4,:), 'b-', 'LineWidth', 2);
 xlabel('Time (s)');
-ylabel('$\phi$ (rad/s)', 'Interpreter', 'latex');
+ylabel('$\dot{\phi}$ (m/s)', 'Interpreter', 'latex');
 grid on;
 
 %% Plot 4: dx, dy, dtheta over time
