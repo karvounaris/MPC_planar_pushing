@@ -18,7 +18,7 @@ gurobi_solve_time  = data(:, 33)';% 1 x N
 
 len = 0.2;
 wid = 0.15;
-radius = 0.075;
+height = 0.18;
 object_shape = "rectangular_prism";
 
 %% Plot 1: Trajectory + Capsule Shape
@@ -34,17 +34,16 @@ hold on;
 plot(x(1,1), x(2,1), 'go', 'MarkerFaceColor', 'g', 'DisplayName', 'Start');
 plot(x(1,end), x(2,end), 'yo', 'MarkerFaceColor', 'y', 'DisplayName', 'End');
 
-% -- Capsule shape along the path (requires get_capsule_shape) --
-capsule_shape_handle = [];
-
+% -- Rectangular shape along the path --
+rect_shape_handle = [];
 step = round(length(x(1,:))/10);
 for i = 1:step:length(x(1,:))
-    capsule_shape = get_capsule_shape(len, radius, x(1,i), x(2,i), x(3,i));
-    if isempty(capsule_shape_handle)
-        capsule_shape_handle = fill(capsule_shape(:,1), capsule_shape(:,2), 'b', ...
-                                    'FaceAlpha', 0.2, 'DisplayName', 'Capsule Shape');
+    rect_vertices = get_rectangle_shape(len, wid, x(1,i), x(2,i), x(3,i));
+    if isempty(rect_shape_handle)
+        rect_shape_handle = fill(rect_vertices(:,1), rect_vertices(:,2), 'b', ...
+                                 'FaceAlpha', 0.2, 'DisplayName', 'Rectangle Shape');
     else
-        fill(capsule_shape(:,1), capsule_shape(:,2), 'b', 'FaceAlpha', 0.2);
+        fill(rect_vertices(:,1), rect_vertices(:,2), 'b', 'FaceAlpha', 0.2);
     end
 end
 
@@ -62,12 +61,12 @@ end
 contact_handle = plot(contact_x_world, contact_y_world, 'r-', 'LineWidth', 2, 'DisplayName', 'Contact Point');
 
 % Desired trajectory in black
-plot(x_star(1,:), x_star(2,:), 'k-', 'LineWidth', 2, 'DisplayName', 'Desired Traj');
+plot(x_star(1,:), x_star(2,:), 'k-', 'LineWidth', 2, 'DisplayName', 'Desired trajectory');
 plot(x_star(1,1), x_star(2,1), 'go', 'MarkerFaceColor', 'g');
 plot(x_star(1,end), x_star(2,end), 'yo', 'MarkerFaceColor', 'y');
 
 % Adjust legend as needed
-legend([capsule_shape_handle; findobj(gca, 'DisplayName', 'Trajectory'); ...
+legend([rect_shape_handle; findobj(gca, 'DisplayName', 'Trajectory'); ...
         findobj(gca, 'DisplayName', 'Desired trajectory'); ...
         findobj(gca, 'DisplayName', 'Start'); findobj(gca, 'DisplayName', 'End'); ...
         contact_handle], 'Location', 'Best');
