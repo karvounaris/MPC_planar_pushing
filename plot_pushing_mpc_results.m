@@ -13,14 +13,13 @@ u_star      = data(:, 21:23)';% 3 x N
 du          = data(:, 24:26)';% 3 x N
 z           = data(:, 27:29)';% 3 x N
 solve_time  = data(:, 30)';% 1 x N
+command_v   = data(:, 31:32)';% 2 x N
+gurobi_solve_time  = data(:, 33)';% 1 x N
 
 len = 0.2;
 wid = 0.15;
 radius = 0.075;
 object_shape = "rectangular_prism";
-
-% j (contact indicator array)
-% j = ones(1, length(time));  % Or a real contact indicator 0/1
 
 %% Plot 1: Trajectory + Capsule Shape
 figure;
@@ -242,19 +241,30 @@ ylabel('z3');
 grid on;
 
 %% Plot 9: Solver Times
-% If your CSV has solve_time as a single solver time. If you have additional 
-% solver times (e.g., gurobi_solve_times) from somewhere else, load/parse them.
 figure;
 plot(time, solve_time, 'LineWidth', 2);
 hold on;
-% plot(time, other_solver_time, 'LineWidth', 2); % For Gurobi or other solver
+plot(time, gurobi_solve_time, 'LineWidth', 2);
 xlabel('Simulation Time (s)');
 ylabel('Solver Time (s)');
-legend('Solver Time');
+legend('Time By C++', 'Time By Gurobi');
 grid on;
 
+%% Plot 10: robot velocity
+figure;
+subplot(2,1,1);
+plot(time(1:end), command_v(1,:), 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('$v_x$ (m/s)', 'Interpreter', 'latex');
+grid on;
 
-%% Plot 10: Path Error
+subplot(2,1,2);
+plot(time(1:end), command_v(2,:), 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('$v_y$ (m/s)', 'Interpreter', 'latex');
+grid on;
+
+%% Plot 11: Path Error
 
 % [path_error, x_y_error, theta_error] = path_error_MIQP(x, x_star);
 % 
