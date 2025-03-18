@@ -6,19 +6,19 @@
 clear
 close all
 clc
-
-len = 0.2;
-wid = 0.15;
-radius = 0.075;
-height = 0.18;
-mass = 4;
-object_shape = "rectangular_prism";
-% len = 0.1;
-% radius = 0.05;
-% wid = radius*2;
-% height = 0.05;
+% 
+% len = 0.2;
+% wid = 0.15;
+% radius = 0.075;
+% height = 0.18;
 % mass = 4;
-% object_shape = "rectangular_capsule_prism";
+% object_shape = "rectangular_prism";
+len = 0.1;
+radius = 0.05;
+wid = radius*2;
+height = 0.05;
+mass = 4;
+object_shape = "rectangular_capsule_prism";
 rectangular_prism_mass = mass * (2*len*radius) / (2*len*radius + pi*radius^2);
 cylinder_mass = mass * (pi*radius^2) / (2*len*radius + pi*radius^2);
 I_object = calculate_inertia_matrix(len, wid, height, radius, ...
@@ -38,10 +38,10 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-x_0 = 0.5;
-y_0 = -0.3;
-x_f = 0.7;
-y_f = 0.1;
+x_0 = 0;
+y_0 = 0;
+x_f = 0.25;
+y_f = 0.25;
 v_constant = 0.055;
 timestep = 0.002;
 trajectory_radius = 0.2;
@@ -58,8 +58,8 @@ N = 20;
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         fifth_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
-[x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
-                        constant_velocity_trajectory_straight_line(v_constant, x_0, x_f, y_0, y_f, timestep);
+% [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+%                         constant_velocity_trajectory_straight_line(v_constant, x_0, x_f, y_0, y_f, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         quarter_circle_trajectory(duration, trajectory_radius, timestep);
@@ -76,8 +76,8 @@ N = 20;
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         s_shape_trajectory(duration, trajectory_radius, timestep);
 
-% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
-%                     constant_velocity_s_shape_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
+[x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+                    constant_velocity_s_shape_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
 
 [fn_star, ft_star, phi_star_dot, phi_star] = ...
                           calculate_u_star_one_contact_point(L, x_star_dot, y_star_dot, theta_star, ...
@@ -106,17 +106,17 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 6*pi/4];
-% x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 6.5*pi/4];
 % x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 5*pi/4];
 % x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 7*pi/4];
+x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 5*pi/4];
+% x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 6.8*pi/4];
 mpc_output = [];
 
 % for the straight line change the upper and bottom limits for phi_dot to -3 +3
 % MPC controller tunable parameters
 Q = 80 * diag([5, 5, 0.1, 0.01]);
 QN = 42000 * diag([5, 5, 0.1, 0.01]);
-R = 0.02 * diag([1, 1, 0.01]);
+R = 0.01 * diag([1, 1, 0.01]);
 W = 0.01 * diag([0.95, 1, 1]);
 
 % for the s shape change the upper and bottom limits for phi_dot to -2 +2
@@ -396,10 +396,10 @@ ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
 grid on;
 
 subplot(2,1,2);
-plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2 + dx(3,:).^2), 'LineWidth', 2);
+plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2 + 0.05 * dx(3,:).^2), 'LineWidth', 2);
 % title('Norm of dx and dy dtheta over time');
 xlabel('Time (s)');
-ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2 + \bar{\theta}^2}$', 'Interpreter', 'latex');
+ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2 + 0.05 * \bar{\theta}^2}$', 'Interpreter', 'latex');
 grid on;
 
 %% Plot fn ft and phi_dot in seperate plots
@@ -572,31 +572,31 @@ grid on;
 
 %% Path error metrics
 
-% [path_error, x_y_error, theta_error] = path_error_MIQP(x, x_star);
-% 
-% %% plots of path errors
-% figure;
-% % First subplot for path error
-% subplot(3,1,1);
-% plot(time(1:end), path_error, 'LineWidth', 2);
-% % title('Path error x-y-theta');
-% xlabel('Time (s)');
-% ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2 + \bar{\theta}^2}$', 'Interpreter', 'latex');
-% grid on;
-% 
-% % Second subplot for path error
-% subplot(3,1,2);
-% plot(time(1:end), x_y_error, 'LineWidth', 2);
-% % title('Path error x-y');
-% xlabel('Time (s)');
-% ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
-% grid on;
-% 
-% % Third subplot for path error
-% subplot(3,1,3);
-% plot(time(1:end), theta_error, 'LineWidth', 2);
-% % title('Path error theta');
-% xlabel('Time (s)');
-% ylabel('$\bar{\theta}$ (rad)', 'Interpreter', 'latex');
-% 
-% grid on;
+[path_error, x_y_error, theta_error] = path_error_MIQP(x, x_star);
+
+%% plots of path errors
+figure;
+% First subplot for path error
+subplot(3,1,1);
+plot(time(1:end), path_error, 'LineWidth', 2);
+% title('Path error x-y-theta');
+xlabel('Time (s)');
+ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2 + 0.05 * \bar{\theta}^2}$', 'Interpreter', 'latex');
+grid on;
+
+% Second subplot for path error
+subplot(3,1,2);
+plot(time(1:end), x_y_error, 'LineWidth', 2);
+% title('Path error x-y');
+xlabel('Time (s)');
+ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
+grid on;
+
+% Third subplot for path error
+subplot(3,1,3);
+plot(time(1:end), theta_error, 'LineWidth', 2);
+% title('Path error theta');
+xlabel('Time (s)');
+ylabel('$\bar{\theta}$ (rad)', 'Interpreter', 'latex');
+
+grid on;
