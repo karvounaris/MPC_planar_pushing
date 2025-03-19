@@ -225,16 +225,30 @@ hold on;
 plot(x(1,1), x(2,1), 'go', 'MarkerFaceColor', 'g', 'DisplayName', 'Start');
 plot(x(1,end), x(2,end), 'yo', 'MarkerFaceColor', 'y', 'DisplayName', 'End');
 
-capsule_shape_handle = [];
+if object_shape == "rectangular_capsule_prism"
+    shape_handle_handle = [];
+    % Plot the object shape at several points along the trajectory
+    for i = 1:round(length(x(1,:))/10):length(x(1,:))
+        shape_handle = get_capsule_shape(len, radius, x(1,i), x(2,i), x(3,i));
+    
+        if isempty(shape_handle_handle) 
+            shape_handle_handle = fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2, 'DisplayName', 'Capsule Shape');
+        else
+            fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2);
+        end
+    end
 
-% Plot the object shape at several points along the trajectory
-for i = 1:round(length(x(1,:))/10):length(x(1,:))
-    capsule_shape = get_capsule_shape(len, radius, x(1,i), x(2,i), x(3,i));
-
-    if isempty(capsule_shape_handle) 
-        capsule_shape_handle = fill(capsule_shape(:,1), capsule_shape(:,2), 'b', 'FaceAlpha', 0.2, 'DisplayName', 'Capsule Shape');
-    else
-        fill(capsule_shape(:,1), capsule_shape(:,2), 'b', 'FaceAlpha', 0.2);
+elseif object_shape == "rectangular_prism"
+    shape_handle = [];
+    % Plot the object shape at several points along the trajectory
+    for i = 1:round(length(x(1,:))/10):length(x(1,:))
+        shape_handle = get_rectangle_shape(len, radius, x(1,i), x(2,i), x(3,i));
+    
+        if isempty(shape_handle_handle) 
+            shape_handle_handle = fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2, 'DisplayName', 'Capsule Shape');
+        else
+            fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2);
+        end
     end
 end
 
@@ -269,7 +283,7 @@ contact_handle = plot(contact_x_world, contact_y_world, 'r-', 'LineWidth', 2, 'D
 
 % Plot for j == 0 (green circles)
 % plot(contact_x_world(idx_0), contact_y_world(idx_0), 'go', 'MarkerSize', 2);
-plot(contact_x_world(idx_0), contact_y_world(idx_0), 'ro', 'MarkerSize', 2);
+% plot(contact_x_world(idx_0), contact_y_world(idx_0), 'ro', 'MarkerSize', 2);
 
 % plot(contact_x, contact_y, 'r-', 'LineWidth', 1.5, 'DisplayName', 'Contact Path');
 
@@ -278,7 +292,7 @@ plot(x_star(1,:), x_star(2,:), 'k-', 'LineWidth', 2, 'DisplayName', 'Desired tra
 plot(x_star(1,1), x_star(2,1), 'go', 'MarkerFaceColor', 'g'); % Start point of x_star in green
 plot(x_star(1,end), x_star(2,end), 'yo', 'MarkerFaceColor', 'y'); % End point of x_star in yellow
 
-legend([capsule_shape_handle; findobj(gca, 'DisplayName', 'Trajectory'); ...
+legend([shape_handle_handle; findobj(gca, 'DisplayName', 'Trajectory'); ...
         findobj(gca, 'DisplayName', 'Desired trajectory'); ...
         findobj(gca, 'DisplayName', 'Start'); findobj(gca, 'DisplayName', 'End'); ...
         contact_handle], 'Location', 'Best');

@@ -8,18 +8,18 @@ clear
 close all
 clc
 
-len = 0.2;
-wid = 0.15;
-radius = 0.075;
-height = 0.18;
-mass = 4;
-object_shape = "rectangular_prism";
-% len = 0.1;
-% radius = 0.05;
-% wid = radius*2;
-% height = 0.05;
+% len = 0.2;
+% wid = 0.15;
+% radius = 0.075;
+% height = 0.18;
 % mass = 4;
-% object_shape = "rectangular_capsule_prism";
+% object_shape = "rectangular_prism";
+len = 0.1;
+radius = 0.05;
+wid = radius*2;
+height = 0.05;
+mass = 4;
+object_shape = "rectangular_capsule_prism";
 contact_area = calculate_contact_area(len, wid, radius, object_shape);
 
 % Limit surface model
@@ -33,10 +33,10 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-x_0 = 0.5;
-y_0 = -0.3;
-x_f = 0.7;
-y_f = 0.1;
+x_0 = 0;
+y_0 = 0;
+x_f = 0.25;
+y_f = 0.25;
 v_constant = 0.055;
 timestep = 0.002;
 trajectory_radius = 0.2;
@@ -61,10 +61,10 @@ for i = 1:length(phi_star_dot)
     end
 end
 
-T = table(x_star(:), y_star(:), theta_star(:), phi_star(:), fn_star(:), ft_star(:), phi_star_dot(:), ...
-          'VariableNames', {'x_star', 'y_star', 'theta_star', 'phi_star', 'fn_star', 'ft_star', 'phi_star_dot'});
-
-writetable(T, 'simulation_data_straight_line.csv');
+% T = table(x_star(:), y_star(:), theta_star(:), phi_star(:), fn_star(:), ft_star(:), phi_star_dot(:), ...
+%           'VariableNames', {'x_star', 'y_star', 'theta_star', 'phi_star', 'fn_star', 'ft_star', 'phi_star_dot'});
+% 
+% writetable(T, 'simulation_data_straight_line.csv');
 % writetable(T, 'simulation_data_s_shape.csv')
 
 %% plot x_c and y_c
@@ -95,8 +95,8 @@ grid on;
 %% plot x_star y_star theta_star and the whole 2d surface
 
 figure;
-plot(x_star, y_star, 'Linewidth', 2);
-title('Trajectory of x and y Over Time');
+plot(x_star, y_star, 'k-', 'Linewidth', 2);
+% title('Trajectory of x and y Over Time');
 xlabel('x (m)');
 ylabel('y (m)');
 grid on;
@@ -211,16 +211,30 @@ hold on;
 plot(x_star(1), y_star(1), 'go', 'MarkerFaceColor', 'g', 'DisplayName', 'Start');
 plot(x_star(end), y_star(end), 'yo', 'MarkerFaceColor', 'y', 'DisplayName', 'End');
 
-capsule_shape_handle = [];
+if object_shape == "rectangular_capsule_prism"
+    shape_handle_handle = [];
+    % Plot the object shape at several points along the trajectory
+    for i = 1:round(length(x(1,:))/10):length(x(1,:))
+        shape_handle = get_capsule_shape(len, radius, x(1,i), x(2,i), x(3,i));
+    
+        if isempty(shape_handle_handle) 
+            shape_handle_handle = fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2, 'DisplayName', 'Capsule Shape');
+        else
+            fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2);
+        end
+    end
 
-% Plot the object shape at several points along the trajectory
-for i = 1:round(length(x_star)/10):length(x_star)
-    capsule_shape = get_capsule_shape(len, radius, x_star(i), y_star(i), theta_star(i));
-
-    if isempty(capsule_shape_handle) 
-        capsule_shape_handle = fill(capsule_shape(:,1), capsule_shape(:,2), 'b', 'FaceAlpha', 0.3, 'DisplayName', 'Capsule Shape');
-    else
-        fill(capsule_shape(:,1), capsule_shape(:,2), 'b', 'FaceAlpha', 0.3);
+elseif object_shape == "rectangular_prism"
+    shape_handle = [];
+    % Plot the object shape at several points along the trajectory
+    for i = 1:round(length(x(1,:))/10):length(x(1,:))
+        shape_handle = get_rectangle_shape(len, radius, x(1,i), x(2,i), x(3,i));
+    
+        if isempty(shape_handle_handle) 
+            shape_handle_handle = fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2, 'DisplayName', 'Capsule Shape');
+        else
+            fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2);
+        end
     end
 end
 
@@ -256,7 +270,7 @@ end
 
 plot(contact_x, contact_y, 'r-', 'Linewidth', 1.5, 'DisplayName', 'Contact Path');
 
-legend([capsule_shape_handle; findobj(gca, 'DisplayName', 'Trajectory'); ...
+legend([shape_handle_handle; findobj(gca, 'DisplayName', 'Trajectory'); ...
         findobj(gca, 'DisplayName', 'Start'); findobj(gca, 'DisplayName', 'End'); ...
         findobj(gca, 'DisplayName', 'Contact Path')], ...
         'Location', 'Best');
