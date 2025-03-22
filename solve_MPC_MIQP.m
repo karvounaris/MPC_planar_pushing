@@ -179,8 +179,8 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
     end
 
     % Additional Gurobi parameters
-    % params.outputflag = 1;
-    params.outputflag = 0;
+    params.outputflag = 1;
+    % params.outputflag = 0;
     % params.IntFeasTol = 1e-9;
     % params.MIPGap = 0;
     % params.OptimalityTol = 1e-9;

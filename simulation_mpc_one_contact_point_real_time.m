@@ -7,18 +7,18 @@ clear
 close all
 clc
 % 
-% len = 0.2;
-% wid = 0.15;
-% radius = 0.075;
-% height = 0.18;
+len = 0.2;
+wid = 0.15;
+radius = 0.075;
+height = 0.18;
+mass = 1.1;
+object_shape = "rectangular_prism";
+% len = 0.1;
+% radius = 0.05;
+% wid = radius*2;
+% height = 0.05;
 % mass = 4;
-% object_shape = "rectangular_prism";
-len = 0.1;
-radius = 0.05;
-wid = radius*2;
-height = 0.05;
-mass = 4;
-object_shape = "rectangular_capsule_prism";
+% object_shape = "rectangular_capsule_prism";
 rectangular_prism_mass = mass * (2*len*radius) / (2*len*radius + pi*radius^2);
 cylinder_mass = mass * (pi*radius^2) / (2*len*radius + pi*radius^2);
 I_object = calculate_inertia_matrix(len, wid, height, radius, ...
@@ -618,69 +618,69 @@ grid on;
 
 %% Video area
 % --- 1) Create and configure the video writer
-videoFilename = 'planar_pushing_simulation.avi';
-video = VideoWriter(videoFilename);
-video.FrameRate = 30;  % Adjust frame rate as desired
-open(video);
-
-% Create a figure for the animation
-fig = figure('Name','Planar Pushing Video','NumberTitle','off');
-
-% --- 2) Loop over each time step to create frames
-for i = 1:10:length(x(1,:))
-    
-    % Clear figure and hold on for multiple plots
-    clf;  
-    hold on;  
-    grid on;  
-    axis equal;
-
-    % (Optional) Set the axes to a fixed range if desired
-    % xlim([-1 5]); ylim([-1 5]);  % adjust to your data
-
-    % --- (A) Plot the completed portion of the object's trajectory so far
-    plot(x(1,1:i), x(2,1:i), 'b-', 'LineWidth', 2, ...
-         'DisplayName','Object Trajectory');
-    
-    % Mark the start and (current) end
-    plot(x(1,1), x(2,1), 'go', 'MarkerFaceColor','g', ...
-         'DisplayName','Start');
-    plot(x(1,i), x(2,i), 'yo', 'MarkerFaceColor','y', ...
-         'DisplayName','Current Position');
-
-    % --- (B) Plot the desired trajectory up to the current index
-    plot(x_star(1,1:i), x_star(2,1:i), 'k-', 'LineWidth', 2, ...
-         'DisplayName','Desired Trajectory');
-    
-    % Mark the start and end of desired trajectory
-    plot(x_star(1,1),   x_star(2,1),   'go', 'MarkerFaceColor','g');
-    plot(x_star(1,end), x_star(2,end), 'yo', 'MarkerFaceColor','y');
-    
-    % --- (C) Plot the capsule (object) shape at the current step
-    if object_shape == "rectangular_capsule_prism"
-        object = get_capsule_shape(len, radius, x(1,i), x(2,i), x(3,i));
-        fill(object(:,1), object(:,2), 'b', 'FaceAlpha', 0.2, ...
-             'DisplayName','Object Shape');
-    elseif object_shape == "rectangular_prism"
-        object = get_rectangle_shape(len, radius, x(1,i), x(2,i), x(3,i));
-        fill(object(:,1), object(:,2), 'b', 'FaceAlpha', 0.2, ...
-             'DisplayName','Object Shape');
-    end
-     
-    % --- (D) Plot the contact point trajectory up to current index
-    % Assumes you have already computed and stored contact_x_world, contact_y_world
-    % for each time step in arrays of the same length as x.
-    plot(contact_x_world(1:i), contact_y_world(1:i), 'r-', 'LineWidth', 2, ...
-         'DisplayName','Contact Path');
-
-    % --- (E) Add legend and labels
-    xlabel('x (m)'); ylabel('y (m)');
-    % legend('Location','Best');
-
-    % --- (F) Capture this frame and write to video
-    frame = getframe(fig);
-    writeVideo(video, frame);
-end
-
-% --- 3) Close the video writer
-close(video);
+% videoFilename = 'planar_pushing_simulation.avi';
+% video = VideoWriter(videoFilename);
+% video.FrameRate = 30;  % Adjust frame rate as desired
+% open(video);
+% 
+% % Create a figure for the animation
+% fig = figure('Name','Planar Pushing Video','NumberTitle','off');
+% 
+% % --- 2) Loop over each time step to create frames
+% for i = 1:10:length(x(1,:))
+% 
+%     % Clear figure and hold on for multiple plots
+%     clf;  
+%     hold on;  
+%     grid on;  
+%     axis equal;
+% 
+%     % (Optional) Set the axes to a fixed range if desired
+%     % xlim([-1 5]); ylim([-1 5]);  % adjust to your data
+% 
+%     % --- (A) Plot the completed portion of the object's trajectory so far
+%     plot(x(1,1:i), x(2,1:i), 'b-', 'LineWidth', 2, ...
+%          'DisplayName','Object Trajectory');
+% 
+%     % Mark the start and (current) end
+%     plot(x(1,1), x(2,1), 'go', 'MarkerFaceColor','g', ...
+%          'DisplayName','Start');
+%     plot(x(1,i), x(2,i), 'yo', 'MarkerFaceColor','y', ...
+%          'DisplayName','Current Position');
+% 
+%     % --- (B) Plot the desired trajectory up to the current index
+%     plot(x_star(1,1:i), x_star(2,1:i), 'k-', 'LineWidth', 2, ...
+%          'DisplayName','Desired Trajectory');
+% 
+%     % Mark the start and end of desired trajectory
+%     plot(x_star(1,1),   x_star(2,1),   'go', 'MarkerFaceColor','g');
+%     plot(x_star(1,end), x_star(2,end), 'yo', 'MarkerFaceColor','y');
+% 
+%     % --- (C) Plot the capsule (object) shape at the current step
+%     if object_shape == "rectangular_capsule_prism"
+%         object = get_capsule_shape(len, radius, x(1,i), x(2,i), x(3,i));
+%         fill(object(:,1), object(:,2), 'b', 'FaceAlpha', 0.2, ...
+%              'DisplayName','Object Shape');
+%     elseif object_shape == "rectangular_prism"
+%         object = get_rectangle_shape(len, radius, x(1,i), x(2,i), x(3,i));
+%         fill(object(:,1), object(:,2), 'b', 'FaceAlpha', 0.2, ...
+%              'DisplayName','Object Shape');
+%     end
+% 
+%     % --- (D) Plot the contact point trajectory up to current index
+%     % Assumes you have already computed and stored contact_x_world, contact_y_world
+%     % for each time step in arrays of the same length as x.
+%     plot(contact_x_world(1:i), contact_y_world(1:i), 'r-', 'LineWidth', 2, ...
+%          'DisplayName','Contact Path');
+% 
+%     % --- (E) Add legend and labels
+%     xlabel('x (m)'); ylabel('y (m)');
+%     % legend('Location','Best');
+% 
+%     % --- (F) Capture this frame and write to video
+%     frame = getframe(fig);
+%     writeVideo(video, frame);
+% end
+% 
+% % --- 3) Close the video writer
+% close(video);

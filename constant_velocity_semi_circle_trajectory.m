@@ -16,7 +16,7 @@ function [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, t,
     t = 0:timestep:duration;
 
     % Compute the angle theta as a function of time
-    theta_star = (v_constant / trajectory_radius) * t;
+    theta_star = (v_constant / trajectory_radius) * t - pi/2;
 
     % Compute the angular velocity (theta_dot) as a vector (constant)
     theta_star_dot = (v_constant / trajectory_radius) * ones(size(t));

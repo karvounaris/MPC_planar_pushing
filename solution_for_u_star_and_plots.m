@@ -8,18 +8,18 @@ clear
 close all
 clc
 
-% len = 0.2;
-% wid = 0.15;
-% radius = 0.075;
-% height = 0.18;
+len = 0.2;
+wid = 0.15;
+radius = 0.075;
+height = 0.18;
+mass = 1.1;
+object_shape = "rectangular_prism";
+% len = 0.1;
+% radius = 0.05;
+% wid = radius*2;
+% height = 0.05;
 % mass = 4;
-% object_shape = "rectangular_prism";
-len = 0.1;
-radius = 0.05;
-wid = radius*2;
-height = 0.05;
-mass = 4;
-object_shape = "rectangular_capsule_prism";
+% object_shape = "rectangular_capsule_prism";
 contact_area = calculate_contact_area(len, wid, radius, object_shape);
 
 % Limit surface model
@@ -33,23 +33,29 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 1/(mu_ground*F_N)^2 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
-x_0 = 0;
-y_0 = 0;
-x_f = 0.25;
-y_f = 0.25;
+x_0 = 0.55;
+y_0 = -0.35;
+x_f = 0.55;
+y_f = 0.3;
 v_constant = 0.055;
 timestep = 0.002;
-trajectory_radius = 0.2;
+trajectory_radius = 0.15;
 
-v_constant_s = 0.055;
-x_center = x_0 - trajectory_radius;
-y_center = y_0;
+v_constant_s = 0.03;
+x_center = 0.45;
+y_center = -0.1;
 
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, time, duration] = ...
 %                         constant_velocity_trajectory_straight_line(v_constant, x_0, x_f, y_0, y_f, timestep);
 
 [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time, duration] = ...
-                    constant_velocity_s_shape_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
+                    constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
+
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time, duration] = ...
+%                     constant_velocity_semi_circle_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
+
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time, duration] = ...
+%                     constant_velocity_s_shape_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
 
 [fn_star, ft_star, phi_star_dot, phi_star] = ...
                           calculate_u_star_one_contact_point(L, x_star_dot, y_star_dot, theta_star, ...
@@ -61,10 +67,14 @@ for i = 1:length(phi_star_dot)
     end
 end
 
-% T = table(x_star(:), y_star(:), theta_star(:), phi_star(:), fn_star(:), ft_star(:), phi_star_dot(:), ...
-%           'VariableNames', {'x_star', 'y_star', 'theta_star', 'phi_star', 'fn_star', 'ft_star', 'phi_star_dot'});
-% 
-% writetable(T, 'simulation_data_straight_line.csv');
+T = table(x_star(:), y_star(:), theta_star(:), phi_star(:), fn_star(:), ft_star(:), phi_star_dot(:), ...
+          'VariableNames', {'x_star', 'y_star', 'theta_star', 'phi_star', 'fn_star', 'ft_star', 'phi_star_dot'});
+
+
+% T = table(x_star(:), y_star(:), theta_star(:), phi_star(:), fn_star(:), ft_star(:), phi_star_dot(:));
+
+
+writetable(T, 'desired_trajectory.csv');
 % writetable(T, 'simulation_data_s_shape.csv')
 
 %% plot x_c and y_c
@@ -214,8 +224,8 @@ plot(x_star(end), y_star(end), 'yo', 'MarkerFaceColor', 'y', 'DisplayName', 'End
 if object_shape == "rectangular_capsule_prism"
     shape_handle_handle = [];
     % Plot the object shape at several points along the trajectory
-    for i = 1:round(length(x(1,:))/10):length(x(1,:))
-        shape_handle = get_capsule_shape(len, radius, x(1,i), x(2,i), x(3,i));
+    for i = 1:round(length(x_star(1,:))/10):length(x_star(1,:))
+        shape_handle = get_capsule_shape(len, radius, x_star(i), y_star(i), theta_star(i));
     
         if isempty(shape_handle_handle) 
             shape_handle_handle = fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2, 'DisplayName', 'Capsule Shape');
@@ -225,10 +235,10 @@ if object_shape == "rectangular_capsule_prism"
     end
 
 elseif object_shape == "rectangular_prism"
-    shape_handle = [];
+    shape_handle_handle = [];
     % Plot the object shape at several points along the trajectory
-    for i = 1:round(length(x(1,:))/10):length(x(1,:))
-        shape_handle = get_rectangle_shape(len, radius, x(1,i), x(2,i), x(3,i));
+    for i = 1:round(length(x_star(1,:))/10):length(x_star(1,:))
+        shape_handle = get_rectangle_shape(len, wid, x_star(i), y_star(i), theta_star(i));
     
         if isempty(shape_handle_handle) 
             shape_handle_handle = fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2, 'DisplayName', 'Capsule Shape');
