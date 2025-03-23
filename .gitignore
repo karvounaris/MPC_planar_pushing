@@ -1,6 +1,7 @@
 *.csv
 *.dat
 *.avi
+*.asv
 
 MPC_one_contact_point_plots/**
 thesis_plots/**
