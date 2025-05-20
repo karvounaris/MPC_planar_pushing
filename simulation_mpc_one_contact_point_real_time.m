@@ -6,19 +6,19 @@
 clear
 close all
 clc
-% 
-len = 0.2;
-wid = 0.15;
-radius = 0.075;
-height = 0.18;
-mass = 1.1;
-object_shape = "rectangular_prism";
-% len = 0.1;
-% radius = 0.05;
-% wid = radius*2;
-% height = 0.05;
-% mass = 4;
-% object_shape = "rectangular_capsule_prism";
+
+% len = 0.2;
+% wid = 0.15;
+% radius = 0.075;
+% height = 0.18;
+% mass = 1.1;
+% object_shape = "rectangular_prism";
+len = 0.1;
+radius = 0.05;
+wid = radius*2;
+height = 0.05;
+mass = 4;
+object_shape = "rectangular_capsule_prism";
 rectangular_prism_mass = mass * (2*len*radius) / (2*len*radius + pi*radius^2);
 cylinder_mass = mass * (pi*radius^2) / (2*len*radius + pi*radius^2);
 I_object = calculate_inertia_matrix(len, wid, height, radius, ...
@@ -116,7 +116,7 @@ mpc_output = [];
 % MPC controller tunable parameters
 Q = 80 * diag([5, 5, 0.1, 0.01]);
 QN = 42000 * diag([5, 5, 0.1, 0.01]);
-R = 0.01 * diag([1, 1, 0.01]);
+R = 0.02 * diag([1, 1, 0.01]);
 W = 0.01 * diag([0.95, 1, 1]);
 
 % for the s shape change the upper and bottom limits for phi_dot to -2 +2
@@ -145,10 +145,8 @@ for i = 1:floor(duration/timestep)
     if i == 1
         simulation_type_flag = false;
         last_time_MIQP_start = i * timestep;
-        [x_star_mpc, u_star_mpc, ~] = create_mpc_star_constant_u(x_star, u_star,...
-                                    N, i, timestep_parameter, control_frequency,...
-                                    u(:,i), x(:,i), len, wid, radius, dp(:,i), timestep, ...
-                                    L, mass, I_object, simulation_type_flag, object_shape);
+        [x_star_mpc, u_star_mpc] = create_mpc_star_constant_u(x_star, u_star,...
+                                    N, i, timestep_parameter);
         tic;
         [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star_mpc, u_star_mpc, dx(:,i), mu, L, ...
                                            radius, len, wid, N, mpc_timestep,  Q, QN, R, W, mpc_output, is_start, object_shape);
@@ -165,10 +163,8 @@ for i = 1:floor(duration/timestep)
         k = k + 1;
     elseif (i * timestep - last_time_MIQP_start > gurobi_solve_times(end) || i == 2)
         last_time_MIQP_start = i * timestep;
-        [x_star_mpc, u_star_mpc, ~] = create_mpc_star_constant_u(x_star, u_star,...
-                                    N, i, timestep_parameter, control_frequency,...
-                                    u(:,i-1), x(:,i), len, wid, radius, dp(:,i), timestep, ...
-                                    L, mass, I_object, simulation_type_flag, object_shape);
+        [x_star_mpc, u_star_mpc] = create_mpc_star_constant_u(x_star, u_star,...
+                                    N, i, timestep_parameter);
         du(:,i) = mpc_output(4*(N+1)+1 : 4*(N+1)+3);
         z(:,i) = mpc_output(4*(N+1)+3*N+1 : 4*(N+1)+3*N+3);
         u(:,i) = du(:,i) + u_star(:,i);
@@ -213,6 +209,7 @@ for i = 1:floor(duration/timestep)
     dp(:,i+1) = [x_dot(1, i+1); x_dot(2, i+1); x_dot(3, i+1)];
     
 end
+
 
 %% Plot Capsule Shape Along Trajectory with Contact Points
 figure;
@@ -307,7 +304,7 @@ hold off;
 figure;
 
 % First subplot for x and x_star over time
-subplot(3, 1, 1);
+subplot(4, 1, 1);
 plot(time, x(1, :), 'b-', 'LineWidth', 2); % Plot x
 hold on;
 plot(time, x_star(1, 1:length(x(1,:))), 'r-', 'LineWidth', 2); % Plot x_star
@@ -318,7 +315,7 @@ legend('x', 'x^*', 'Location', 'best');
 grid on;
 
 % Second subplot for y and y_star over time
-subplot(3, 1, 2);
+subplot(4, 1, 2);
 plot(time, x(2, :), 'b-', 'LineWidth', 2); % Plot y
 hold on;
 plot(time, x_star(2, 1:length(x(2,:))), 'r-', 'LineWidth', 2); % Plot y_star
@@ -329,14 +326,23 @@ legend('y', 'y^*', 'Location', 'best');
 grid on;
 
 % Third subplot for theta and theta_star over time
-subplot(3, 1, 3);
-plot(time, x(3, :), 'b-', 'LineWidth', 2); % Plot theta
+subplot(4, 1, 3);
+plot(time, x(3, :), 'b-', 'LineWidth', 2);
 hold on;
-plot(time, x_star(3, 1:length(x(2,:))), 'r-', 'LineWidth', 2); % Plot theta_star
+plot(time, x_star(3, 1:length(x(3,:))), 'r-', 'LineWidth', 2);
 % title('\theta and \theta^* Over Time');
 xlabel('Time (s)');
 ylabel('\theta (rad)');
 legend('\theta', '\theta^*', 'Location', 'best');
+grid on;
+
+% First subplot for phi over time
+subplot(4, 1, 4);
+plot(time, x(4, :), 'b-', 'LineWidth', 2);
+hold on;
+plot(time, x_star(4, 1:length(x(4,:))), 'r-', 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('$\phi$ (rad)', 'Interpreter', 'latex');
 grid on;
 
 %% Plot x_dot-x_star_dot, y_dot-y_star_dot, and theta_dot-theta_star_dot
@@ -344,7 +350,7 @@ grid on;
 figure;
 
 % First subplot for x_dot and x_star_dot over time
-subplot(3, 1, 1);
+subplot(4, 1, 1);
 plot(time, x_dot(1,:), 'b-', 'LineWidth', 2); % Plot x_dot
 hold on;
 plot(time, x_star_dot(1,:), 'r-', 'LineWidth', 2); % Plot x_star_dot
@@ -354,7 +360,7 @@ legend({'$\dot{x}$', '$\dot{x}^*$'}, 'Interpreter', 'latex', 'Location', 'best')
 grid on;
 
 % Second subplot for y_dot and y_star_dot over time
-subplot(3, 1, 2);
+subplot(4, 1, 2);
 plot(time, x_dot(2,:), 'b-', 'LineWidth', 2); % Plot y_dot
 hold on;
 plot(time, y_star_dot, 'r-', 'LineWidth', 2); % Plot y_star_dot
@@ -364,15 +370,24 @@ legend({'$\dot{y}$', '$\dot{y}^*$'}, 'Interpreter', 'latex', 'Location', 'best')
 grid on;
 
 % Third subplot for theta_dot and theta_star_dot over time
-subplot(3, 1, 3);
-plot(time, x_dot(3,:), 'b-', 'LineWidth', 2); % Plot theta_dot
+subplot(4, 1, 3);
+plot(time, x_dot(3,:), 'b-', 'LineWidth', 2);
 hold on;
-plot(time, theta_star_dot, 'r-', 'LineWidth', 2); % Plot theta_star_dot
+plot(time, theta_star_dot, 'r-', 'LineWidth', 2);
 xlabel('Time (s)');
 ylabel('$\dot{\theta}$ (rad/s)', 'Interpreter', 'latex');
 legend({'$\dot{\theta}$', '$\dot{\theta}^*$'}, 'Interpreter', 'latex', 'Location', 'best');
 grid on;
 
+% Second subplot for phi_dot over time
+subplot(4, 1, 4);
+plot(time, x_dot(4,:), 'b-', 'LineWidth', 2);
+hold on;
+plot(time, phi_star_dot, 'r-', 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('$\dot{\phi}$ (rad/s)', 'Interpreter', 'latex');
+legend({'$\dot{\phi}$', '$\dot{\phi}^*$'}, 'Interpreter', 'latex', 'Location', 'best');
+grid on;
 
 %% Plot dx dy and dtheta in seperate plots
 
@@ -399,21 +414,6 @@ plot(time(1:end-1), dx(3,:), 'LineWidth', 2);
 % title('dtheta Over Time');
 xlabel('Time (s)');
 ylabel('$\bar{\theta}$ (rad)', 'Interpreter', 'latex');
-grid on;
-
-figure;
-subplot(2,1,1);
-plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2), 'LineWidth', 2);
-% title('Norm of dx and dy over time');
-xlabel('Time (s)');
-ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
-grid on;
-
-subplot(2,1,2);
-plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2 + 0.05 * dx(3,:).^2), 'LineWidth', 2);
-% title('Norm of dx and dy dtheta over time');
-xlabel('Time (s)');
-ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2 + 0.05 * \bar{\theta}^2}$', 'Interpreter', 'latex');
 grid on;
 
 %% Plot fn ft and phi_dot in seperate plots
@@ -497,81 +497,6 @@ xlabel('Time (s)');
 ylabel('z3');
 grid on;
 
-%% Plot phi and phi_dot in seperate plots
-
-figure;
-
-% First subplot for phi over time
-subplot(2, 1, 1);
-plot(time(1:end), x(4,:), 'LineWidth', 2);
-xlabel('Time (s)');
-ylabel('$\phi$ (rad)', 'Interpreter', 'latex');
-grid on;
-
-% Second subplot for phi_dot over time
-subplot(2, 1, 2);
-plot(time(1:end), x_dot(4,:), 'LineWidth', 2);
-xlabel('Time (s)');
-ylabel('$\dot{\phi}$ (rad/s)', 'Interpreter', 'latex');
-grid on;
-
-
-%% Plot wrench and ground friction over time over time
-
-figure;
-% First subplot for force on x-axis
-subplot(4,1,1);
-plot(time(1:end-1), wrench(1,:), 'LineWidth', 2);
-hold on;
-plot(time(1:end-1), ground_friction(1,:), 'LineWidth', 2);
-title('Force on x-axis over time');
-xlabel('Time (s)');
-ylabel('Force (N)');
-legend('Wrench', 'Ground Friction');
-grid on;
-
-% Second subplot for force on y-axis
-subplot(4,1,2);
-plot(time(1:end-1), wrench(2,:), 'LineWidth', 2);
-hold on;
-plot(time(1:end-1), ground_friction(2,:), 'LineWidth', 2);
-title('Force on y-axis over time');
-xlabel('Time (s)');
-ylabel('Force (N)');
-legend('Wrench', 'Ground Friction');
-grid on;
-
-% Third subplot for torque on z-axis
-subplot(4,1,3);
-plot(time(1:end-1), wrench(3,:), 'LineWidth', 2);
-hold on;
-plot(time(1:end-1), ground_friction(3,:), 'LineWidth', 2);
-title('Torque on z-axis over time');
-xlabel('Time (s)');
-ylabel('Torque (Nm)');
-legend('Wrench', 'Ground Friction');
-grid on;
-
-% Fourth subplot for norm of force
-subplot(4,1,4);
-plot(time(1:end-1), sqrt(wrench(1,:).^2 + wrench(2,:).^2 + wrench(3,:).^2), 'LineWidth', 2);
-hold on;
-plot(time(1:end-1), sqrt(ground_friction(1,:).^2 + ground_friction(2,:).^2 + ground_friction(3,:).^2), 'LineWidth', 2);
-title('Norm of friction force over time');
-xlabel('Time (s)');
-ylabel('Torque (Nm)');
-legend('Wrench', 'Ground Friction');
-grid on;
-
-%% Plots for debug
-
-figure;
-plot(time(1:length(time)-1), j, 'LineWidth', 2);
-title('binary debug');
-xlabel('Time (s)');
-ylabel('on-off mode');
-grid on;
-
 %% Plots for solver times
 
 figure;
@@ -586,48 +511,50 @@ grid on;
 
 %% Path error metrics
 
-% [path_error, x_y_error, theta_error] = path_error_MIQP(x, x_star);
-% 
-% %% plots of path errors
-% figure;
-% % First subplot for path error
-% subplot(3,1,1);
-% plot(time(1:end), path_error, 'LineWidth', 2);
-% % title('Path error x-y-theta');
-% xlabel('Time (s)');
-% ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2 + 0.05 * \bar{\theta}^2}$', 'Interpreter', 'latex');
-% grid on;
-% 
-% % Second subplot for path error
-% subplot(3,1,2);
-% plot(time(1:end), x_y_error, 'LineWidth', 2);
-% % title('Path error x-y');
-% xlabel('Time (s)');
-% ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
-% grid on;
-% 
-% % Third subplot for path error
-% subplot(3,1,3);
-% plot(time(1:end), theta_error, 'LineWidth', 2);
-% % title('Path error theta');
-% xlabel('Time (s)');
-% ylabel('$\bar{\theta}$ (rad)', 'Interpreter', 'latex');
-% 
-% grid on;
+path_error = path_error_MIQP(x, x_star);
 
+%% plots of path errors
+figure;
 
-%% Video area
-% --- 1) Create and configure the video writer
-% videoFilename = 'planar_pushing_simulation.avi';
+subplot(2,1,1);
+plot(time(1:end), path_error, 'LineWidth', 2);
+% title('Path error x-y');
+xlabel('Time (s)');
+ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
+grid on;
+
+subplot(2,1,2);
+plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2), 'LineWidth', 2);
+% title('Norm of dx and dy over time');
+xlabel('Time (s)');
+ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
+grid on;
+
+% %% Video area
+% % --- Precompute contact points for each time step ---
+% contact_x_world = zeros(1, length(x(1,:)));
+% contact_y_world = zeros(1, length(x(1,:)));
+% 
+% for i = 1:length(x(1,:))
+%     [x_c, y_c, ~, ~, ~] = calculate_r_c(x(4,i), len, radius, wid, object_shape);
+%     R = [cos(x(3,i)), -sin(x(3,i)); sin(x(3,i)), cos(x(3,i))];
+%     contact_point_global = R * [x_c; y_c] + [x(1,i); x(2,i)];
+% 
+%     contact_x_world(i) = contact_point_global(1);
+%     contact_y_world(i) = contact_point_global(2);
+% end
+% 
+% % --- 1) Create and configure the video writer
+% videoFilename = 'simulation_s_shape.avi';
 % video = VideoWriter(videoFilename);
-% video.FrameRate = 30;  % Adjust frame rate as desired
+% video.FrameRate = 100;  % Adjust frame rate as desired
 % open(video);
 % 
 % % Create a figure for the animation
-% fig = figure('Name','Planar Pushing Video','NumberTitle','off');
+% fig = figure();
 % 
 % % --- 2) Loop over each time step to create frames
-% for i = 1:10:length(x(1,:))
+% for i = 1:length(x(1,:))
 % 
 %     % Clear figure and hold on for multiple plots
 %     clf;  
@@ -662,7 +589,7 @@ grid on;
 %         fill(object(:,1), object(:,2), 'b', 'FaceAlpha', 0.2, ...
 %              'DisplayName','Object Shape');
 %     elseif object_shape == "rectangular_prism"
-%         object = get_rectangle_shape(len, radius, x(1,i), x(2,i), x(3,i));
+%         object = get_rectangle_shape(len, wid, x(1,i), x(2,i), x(3,i));
 %         fill(object(:,1), object(:,2), 'b', 'FaceAlpha', 0.2, ...
 %              'DisplayName','Object Shape');
 %     end
@@ -678,6 +605,7 @@ grid on;
 %     % legend('Location','Best');
 % 
 %     % --- (F) Capture this frame and write to video
+%     drawnow;
 %     frame = getframe(fig);
 %     writeVideo(video, frame);
 % end
