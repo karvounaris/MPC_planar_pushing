@@ -34,28 +34,35 @@ L = [1/(mu_ground*F_N)^2 0 0;
      0 0 1/(alpha*R*mu_ground*F_N)^2];
 
 x_0 = 0.55;
-y_0 = -0.35;
+y_0 = -0.4;
 x_f = 0.55;
-y_f = 0.3;
-v_constant = 0.055;
+y_f = -0.1;
+v_constant = 0.05;
 timestep = 0.002;
-trajectory_radius = 0.15;
+trajectory_radius = 0.2;
 
-v_constant_s = 0.03;
-x_center = 0.45;
+v_constant_s = 0.05;
+x_center = 0.75;
 y_center = -0.1;
 
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, time, duration] = ...
 %                         constant_velocity_trajectory_straight_line(v_constant, x_0, x_f, y_0, y_f, timestep);
 
-[x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time, duration] = ...
-                    constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
+% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time, duration] = ...
+%                     constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time, duration] = ...
 %                     constant_velocity_semi_circle_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, time, duration] = ...
 %                     constant_velocity_s_shape_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
+
+% if you run this goto the "plot x_c and y_c" and add one more repetition
+% to the loop and do the same in the "calculate_u_star_one_contact_point"
+% function
+[x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, time, duration] = ...
+                        constant_velocity_trajectory_straight_line_and_quarter_cycle(v_constant, x_0, x_f, y_0, y_f, timestep, trajectory_radius);
+
 
 [fn_star, ft_star, phi_star_dot, phi_star] = ...
                           calculate_u_star_one_contact_point(L, x_star_dot, y_star_dot, theta_star, ...
@@ -79,7 +86,7 @@ writetable(T, 'desired_trajectory.csv');
 
 %% plot x_c and y_c
 
-for i = 1:(duration/timestep)+1
+for i = 1:(duration/timestep)+2
     [x_c, y_c, r_c, n_c, t_c] = calculate_r_c(phi_star(i), len, radius, wid, object_shape);
     plot_y_c(i) = y_c;
     plot_x_c(i) = x_c;

@@ -58,14 +58,14 @@ N = 20;
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         fifth_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
 
-[x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
-                        constant_velocity_trajectory_straight_line(v_constant, x_0, x_f, y_0, y_f, timestep);
+% [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+%                         constant_velocity_trajectory_straight_line(v_constant, x_0, x_f, y_0, y_f, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         quarter_circle_trajectory(duration, trajectory_radius, timestep);
 
-% [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
-%                     constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
+[x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
+                    constant_velocity_quarter_circle_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                           semi_circle_trajectory(duration, trajectory_radius, timestep);
@@ -106,17 +106,19 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 5*pi/4];
+% x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 5*pi/4];
 % x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 7*pi/4];
 % x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 5*pi/4];
 % x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 6.8*pi/4];
+x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 5.5*pi/4];
+
 mpc_output = [];
 
 % for the straight line change the upper and bottom limits for phi_dot to -3 +3
 % MPC controller tunable parameters
 Q = 80 * diag([5, 5, 0.1, 0.01]);
 QN = 42000 * diag([5, 5, 0.1, 0.01]);
-R = 0.02 * diag([1, 1, 0.01]);
+R = 0.02 * diag([1, 1, 0.1]);
 W = 0.01 * diag([0.95, 1, 1]);
 
 % for the s shape change the upper and bottom limits for phi_dot to -2 +2
@@ -510,25 +512,25 @@ legend('Time By Matlab', 'Time By Gurobi');
 grid on;
 
 %% Path error metrics
-
-path_error = path_error_MIQP(x, x_star);
-
-%% plots of path errors
-figure;
-
-subplot(2,1,1);
-plot(time(1:end), path_error, 'LineWidth', 2);
-% title('Path error x-y');
-xlabel('Time (s)');
-ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
-grid on;
-
-subplot(2,1,2);
-plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2), 'LineWidth', 2);
-% title('Norm of dx and dy over time');
-xlabel('Time (s)');
-ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
-grid on;
+% 
+% path_error = path_error_MIQP(x, x_star);
+% 
+% %% plots of path errors
+% figure;
+% 
+% subplot(2,1,1);
+% plot(time(1:end), path_error, 'LineWidth', 2);
+% % title('Path error x-y');
+% xlabel('Time (s)');
+% ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
+% grid on;
+% 
+% subplot(2,1,2);
+% plot(time(1:end-1), sqrt(dx(1,:).^2 + dx(2,:).^2), 'LineWidth', 2);
+% % title('Norm of dx and dy over time');
+% xlabel('Time (s)');
+% ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
+% grid on;
 
 % %% Video area
 % % --- Precompute contact points for each time step ---
