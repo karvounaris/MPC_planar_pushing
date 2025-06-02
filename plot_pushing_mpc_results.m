@@ -4,9 +4,8 @@ close all;
 clear;
 clc;
 
-
 % -- 1. Read CSV File --
-data = readmatrix('/home/arl/panagiotis/panagiotis_ws/src/ROS_2_pushing_mpc_package/experiments/results/pushing_mpc_out_task_obstacle.csv');
+data = readmatrix('/home/karvounaris/Documents/lab/MIQP results/pushing_mpc_out_task_obstacle.csv');
 % data = readmatrix('/home/arl/panagiotis/results/straight_line_experiment_best.csv');
 
 time        = data(:, 1)';% 1 x N
@@ -133,70 +132,34 @@ hold on;
 plot(time, x_star(4, :), 'r-', 'LineWidth', 2);
 xlabel('Time (s)');
 ylabel('$\phi$ (rad)', 'Interpreter', 'latex');
-grid on;
-
-%% Plot 3: xdot-xdot*, ydot-ydot*, thetadot-thetadot* vs Time
-figure;
-
-% x / x_star
-subplot(4,1,1);
-plot(time, x_dot(1,:), 'b-', 'LineWidth', 2);
-xlabel('Time (s)');
-ylabel('$\dot{x}$ (m/s)', 'Interpreter', 'latex');
-grid on;
-
-% y / y_star
-subplot(4,1,2);
-plot(time, x_dot(2,:), 'b-', 'LineWidth', 2);
-xlabel('Time (s)');
-ylabel('$\dot{y}$ (m/s)', 'Interpreter', 'latex');
-grid on;
-
-% theta / theta_star
-subplot(4,1,3);
-plot(time, x_dot(3,:), 'b-', 'LineWidth', 2);
-xlabel('Time (s)');
-ylabel('$\dot{\theta}$ (m/s)', 'Interpreter', 'latex');
-grid on;
-
-subplot(4,1,4);
-plot(time, x_dot(4,:), 'b-', 'LineWidth', 2);
-xlabel('Time (s)');
-ylabel('$\dot{\phi}$ (m/s)', 'Interpreter', 'latex');
+legend('\phi', '\phi^*', 'Location', 'best');
 grid on;
 
 %% Plot 4: dx, dy, dtheta over time
 
 figure;
-subplot(3,1,1);
+subplot(4,1,1);
 plot(time, dx(1,:), 'LineWidth', 2);
 xlabel('Time (s)', 'Interpreter', 'latex');
 ylabel('$\bar{x}$ (m)', 'Interpreter', 'latex');
 grid on;
 
-subplot(3,1,2);
+subplot(4,1,2);
 plot(time, dx(2,:), 'LineWidth', 2);
 xlabel('Time (s)', 'Interpreter', 'latex');
 ylabel('$\bar{y}$ (m)', 'Interpreter', 'latex');
 grid on;
 
-subplot(3,1,3);
+subplot(4,1,3);
 plot(time, dx(3,:), 'LineWidth', 2);
 xlabel('Time (s)', 'Interpreter', 'latex');
 ylabel('$\bar{\theta}$ (rad)', 'Interpreter', 'latex');
 grid on;
 
-figure;
-subplot(2,1,1);
-plot(time, sqrt(dx(1,:).^2 + dx(2,:).^2), 'LineWidth', 2);
+subplot(4,1,4);
+plot(time, dx(4,:), 'LineWidth', 2);
 xlabel('Time (s)', 'Interpreter', 'latex');
-ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
-grid on;
-
-subplot(2,1,2);
-plot(time, sqrt(dx(1,:).^2 + dx(2,:).^2 + dx(3,:).^2), 'LineWidth', 2);
-xlabel('Time (s)', 'Interpreter', 'latex');
-ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2 + \bar{\theta}^2}$', 'Interpreter', 'latex');
+ylabel('$\bar{\phi}$ (rad)', 'Interpreter', 'latex');
 grid on;
 
 %% Plot 5: u = [fn, ft, phi_dot]
@@ -285,28 +248,26 @@ xlabel('Time (s)');
 ylabel('$v_y$ (m/s)', 'Interpreter', 'latex');
 grid on;
 
-%% Plot 11: Path Error
+%% Path error metrics
 
-% [path_error, x_y_error, theta_error] = path_error_MIQP(x, x_star);
-% 
-% figure;
-% subplot(3,1,1);
-% plot(time, path_error, 'LineWidth', 2);
-% xlabel('Time (s)');
-% ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2 + \bar{\theta}^2}$', 'Interpreter', 'latex');
-% grid on;
-% 
-% subplot(3,1,2);
-% plot(time, x_y_error, 'LineWidth', 2);
-% xlabel('Time (s)');
-% ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$', 'Interpreter', 'latex');
-% grid on;
-% 
-% subplot(3,1,3);
-% plot(time, theta_error, 'LineWidth', 2);
-% xlabel('Time (s)');
-% ylabel('$\bar{\theta}$ (rad)', 'Interpreter', 'latex');
-% grid on;
+path_error = path_error_MIQP(x, x_star);
+
+%% plots of path errors
+figure;
+
+subplot(2,1,1);
+plot(time(1:end), path_error, 'LineWidth', 2);
+title('Path error');
+xlabel('Time (s)');
+ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
+grid on;
+
+subplot(2,1,2);
+plot(time(1:end), sqrt(dx(1,:).^2 + dx(2,:).^2), 'LineWidth', 2);
+title('Trajectory error');
+xlabel('Time (s)');
+ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
+grid on;
 
 %% Video area
 % % --- 1) Create and configure the video writer
