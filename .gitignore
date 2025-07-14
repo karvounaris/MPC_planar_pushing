@@ -1,0 +1,11 @@
+*.csv
+*.dat
+*.avi
+*.asv
+
+*.asv
+*.autosave
+*.m~
+.DS_Store
+*.mat
+*.mex*
