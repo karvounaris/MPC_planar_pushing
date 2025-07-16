@@ -53,7 +53,7 @@ y_center = y_0;
 mpc_timestep = 0.04;
 timestep_parameter = mpc_timestep/timestep;
 control_frequency = 0.04;
-N = 20; 
+N = 40; 
 
 % [x_star, x_star_dot, y_star, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         fifth_trajectory_straight_line(duration, x_0, x_f, y_0, y_f, timestep);
@@ -71,7 +71,7 @@ N = 20;
 %                           semi_circle_trajectory(duration, trajectory_radius, timestep);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~, duration] = ...
-%                     constant_velocity_semi_circle_trajectory(trajectory_radius, v_constant_s, timestep);
+%                     constant_velocity_semi_circle_trajectory(trajectory_radius, v_constant_s, timestep, x_center, y_center);
 
 % [x_star, y_star, x_star_dot, y_star_dot, theta_star, theta_star_dot, ~] = ...
 %                         s_shape_trajectory(duration, trajectory_radius, timestep);
@@ -106,27 +106,23 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-% x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 5*pi/4];
-% x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 7*pi/4];
-% x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 5*pi/4];
-% x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 6.8*pi/4];
-x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 5.5*pi/4];
+x(:,1) = [x_0 + 0.02, y_0 - 0.02, 0, 6*pi/4];
 
 mpc_output = [];
 
 % for the straight line change the upper and bottom limits for phi_dot to -3 +3
 % MPC controller tunable parameters
-Q = 80 * diag([5, 5, 0.1, 0.01]);
-QN = 42000 * diag([5, 5, 0.1, 0.01]);
-R = 0.02 * diag([1, 1, 0.1]);
-W = 0.01 * diag([0.95, 1, 1]);
+% Q = 80 * diag([5, 5, 0.1, 0.01]);
+% QN = 42000 * diag([5, 5, 0.1, 0.01]);
+% R = 0.02 * diag([1, 1, 0.1]);
+% W = 0.01 * diag([0.95, 1, 1]);
 
 % for the s shape change the upper and bottom limits for phi_dot to -2 +2
 % MPC controller tunable parameters
-% Q = 80 * diag([5, 5, 0.1, 0.01]);
-% QN = 42000 * diag([5, 5, 0.1, 0.01]);
-% R = 0.02 * diag([1, 1, 0.01]);
-% W = 0.01 * diag([0.95, 1, 1]);
+Q = 80 * diag([10, 10, 0.1, 0]);
+QN = 42000 * diag([10, 10, 0.1, 0]);
+R = 0.02 * diag([1, 1, 0.01]);
+W = 0.01 * diag([0.95, 1, 1]);
 
 %% Run simulation
 
@@ -224,36 +220,6 @@ axis equal;
 
 hold on;
 
-plot(x(1,1), x(2,1), 'go', 'MarkerFaceColor', 'g', 'DisplayName', 'Start');
-plot(x(1,end), x(2,end), 'yo', 'MarkerFaceColor', 'y', 'DisplayName', 'End');
-
-if object_shape == "rectangular_capsule_prism"
-    shape_handle_handle = [];
-    % Plot the object shape at several points along the trajectory
-    for i = 1:round(length(x(1,:))/10):length(x(1,:))
-        shape_handle = get_capsule_shape(len, radius, x(1,i), x(2,i), x(3,i));
-    
-        if isempty(shape_handle_handle) 
-            shape_handle_handle = fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2, 'DisplayName', 'Capsule Shape');
-        else
-            fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2);
-        end
-    end
-
-elseif object_shape == "rectangular_prism"
-    shape_handle = [];
-    % Plot the object shape at several points along the trajectory
-    for i = 1:round(length(x(1,:))/10):length(x(1,:))
-        shape_handle = get_rectangle_shape(len, radius, x(1,i), x(2,i), x(3,i));
-    
-        if isempty(shape_handle_handle) 
-            shape_handle_handle = fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2, 'DisplayName', 'Capsule Shape');
-        else
-            fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2);
-        end
-    end
-end
-
 contact_x_world = [];
 contact_y_world = [];
 
@@ -275,29 +241,66 @@ for i = 1:length(x(1,:))
     end
 end
 
-% Logical indices for j == 1 and j == 0
-idx_1 = (j == 1);
-idx_0 = (j == 0);
-
-% Plot for j == 1 (red circles)
-% plot(contact_x_world(idx_1), contact_y_world(idx_1), 'ro', 'MarkerSize', 2, 'DisplayName', 'Contact Point');
 contact_handle = plot(contact_x_world, contact_y_world, 'r-', 'LineWidth', 2, 'DisplayName', 'Contact Point');
 
-% Plot for j == 0 (green circles)
-% plot(contact_x_world(idx_0), contact_y_world(idx_0), 'go', 'MarkerSize', 2);
-% plot(contact_x_world(idx_0), contact_y_world(idx_0), 'ro', 'MarkerSize', 2);
+for i = 1:round(length(x(1,:))/5):length(x(1,:))
 
-% plot(contact_x, contact_y, 'r-', 'LineWidth', 1.5, 'DisplayName', 'Contact Path');
+    if object_shape == "rectangular_capsule_prism"
+        shape_handle = get_capsule_shape(len, radius, x(1,i), x(2,i), x(3,i));
+    elseif object_shape == "rectangular_prism"
+        shape_handle = get_rectangle_shape(len, radius, x(1,i), x(2,i), x(3,i));
+    end
+
+    if i == 1 
+        shape_handle_handle = fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2, 'DisplayName', 'Capsule Shape');
+    else
+        fill(shape_handle(:,1), shape_handle(:,2), 'b', 'FaceAlpha', 0.2);
+    end
+
+    r_contact = 0.01;
+    theta_circ = linspace(0, 2*pi, 50);
+    [x_c, y_c, ~, n_c, t_c] = calculate_r_c(x(4,i), len, radius, wid, object_shape);
+    R = [cos(x(3,i)), -sin(x(3,i)); sin(x(3,i)), cos(x(3,i))];
+    contact_point_global_graph = R * [x_c; y_c-r_contact] + [x(1,i); x(2,i)];
+
+    contact_x_world_graph = [];
+    contact_y_world_graph = [];
+
+    contact_x_world_graph = [contact_x_world_graph; contact_point_global_graph(1)];
+    contact_y_world_graph = [contact_y_world_graph; contact_point_global_graph(2)];
+    
+    circle_x = r_contact * cos(theta_circ) + contact_x_world_graph(end);
+    circle_y = r_contact * sin(theta_circ) + contact_y_world_graph(end);
+    
+    if i == 1 
+        shape_handle_handle_cycle = fill(circle_x, circle_y, 'r', 'FaceAlpha', 1.0, 'EdgeColor', 'k', 'LineWidth', 0.5, 'DisplayName', 'Robot');
+    else
+        fill(circle_x, circle_y, 'r', 'FaceAlpha', 1.0, 'EdgeColor', 'k', 'LineWidth', 0.5);
+    end
+end
 
 % Plot x_star and y_star trajectory
 plot(x_star(1,:), x_star(2,:), 'k-', 'LineWidth', 2, 'DisplayName', 'Desired trajectory'); % x_star trajectory in black
-plot(x_star(1,1), x_star(2,1), 'go', 'MarkerFaceColor', 'g'); % Start point of x_star in green
-plot(x_star(1,end), x_star(2,end), 'yo', 'MarkerFaceColor', 'y'); % End point of x_star in yellow
+plot(x_star(1,1), x_star(2,1), 'go', 'MarkerFaceColor', 'g', 'DisplayName', 'Start');
+plot(x_star(1,end), x_star(2,end), 'yo', 'MarkerFaceColor', 'y', 'DisplayName', 'End');
 
-legend([shape_handle_handle; findobj(gca, 'DisplayName', 'Trajectory'); ...
+% legend([shape_handle_handle; shape_handle_handle_cycle; findobj(gca, 'DisplayName', 'Trajectory'); ...
+%         findobj(gca, 'DisplayName', 'Desired trajectory'); ...
+%         findobj(gca, 'DisplayName', 'Start'); findobj(gca, 'DisplayName', 'End'); ...
+%         contact_handle], 'Location', 'Best');
+
+% Create proxy for circular red marker for legend
+proxy_contact_point = plot(nan, nan, 'ro', 'MarkerFaceColor', 'r', 'MarkerEdgeColor', 'k', ...
+                           'LineWidth', 0.5, 'DisplayName', 'Robot');
+
+legend([shape_handle_handle; ...
+        proxy_contact_point; ...
+        findobj(gca, 'DisplayName', 'Trajectory'); ...
         findobj(gca, 'DisplayName', 'Desired trajectory'); ...
-        findobj(gca, 'DisplayName', 'Start'); findobj(gca, 'DisplayName', 'End'); ...
-        contact_handle], 'Location', 'Best');
+        findobj(gca, 'MarkerFaceColor', 'g'); ...
+        findobj(gca, 'MarkerFaceColor', 'y'); ...
+        contact_handle], ...
+        'Location', 'Best');
 
 hold off;
 

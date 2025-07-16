@@ -19,7 +19,6 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
     j = 0;
     % Loop over horizon N to build cost and constraints
     for i = 1:N
-        tic
         if i == 1 || i == 2 || i == 7 || i == 12
             j = j + 1;
             % Binary constraint z1 + z2 + z3 = 1
@@ -108,8 +107,8 @@ function [mpc_output, gurobi_solve_time] = solve_MPC_MIQP(x_star, u_star, dx_0, 
     model.ub =  inf * ones(4 * (N+1), 1);
 
     % Define bounds for inputs (u = [fn, ft, phi_dot])
-    lb_u = [-30; -30; -10];
-    ub_u = [4;  30;  10];
+    lb_u = [-30; -30; -2];
+    ub_u = [4;  30;  2];
 
     % Repeat input bounds for N steps
     model.lb = [model.lb; repmat(lb_u, N, 1)];
