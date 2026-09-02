@@ -54,7 +54,7 @@ L = [1/(mu_ground*F_N)^2 0 0;
 
 x_0 = 0;
 y_0 = 0;
-x_f = 0.3;
+x_f = 0;
 y_f = 0.3;
 v_constant = 0.05;
 timestep = 0.002;
@@ -101,7 +101,7 @@ x = [0; 0; 0; 0];
 x_dot = [0; 0; 0; 0];
 x_ddot = [0; 0; 0];
 u = [0; 0; 0];
-x(:,1) = [x_0 + 0.05, y_0 - 0.05, 0, 3*pi/2];
+x(:,1) = [x_0 + 0.02, y_0 - 0.02, 0, 3*pi/2];
 % obstacle_data = [[0.1; 0.2; 0.05], [0.5; 0.1; 0.05], [0.3; 0.4; 0.05]];  % [x_obstacle, y_obstacle, radius_obstacle]
 % obstacle_data = [-0.12; 0.04; 0.04];  % [x_obstacle, y_obstacle, radius_obstacle]
 obstacle_data = [];
@@ -272,6 +272,11 @@ for i = 1:floor(duration/timestep)
     x_ddot(1:3, i+1) = diag([mass mass I_object(3,3)]) \ (-gr_frict + w);
     x_dot(1:3, i+1) = x_dot(1:3, i) + x_ddot(1:3, i+1) .* timestep;
     x(1:3, i+1) = x(1:3, i) + x_dot(1:3, i+1) .* timestep;
+    % -gr_frict + w
+    -gr_frict
+    + w
+    x_ddot(1:3, i+1)
+    x_dot(1:3, i+1)
 
     time(i+1) = time(i) + timestep;
     dp(:,i+1) = [x_dot(1, i+1); x_dot(2, i+1); x_dot(3, i+1)];
@@ -583,6 +588,76 @@ grid on;
 % xlabel('Time (s)');
 % ylabel('$\sqrt{\bar{x}^2 + \bar{y}^2}$ (m)', 'Interpreter', 'latex');
 % grid on;
+
+
+
+%% wrench and firction forces
+
+figure;
+subplot(4, 1, 1);
+plot(time(1:end-1), ground_friction(1,:), 'LineWidth', 2);
+hold on;
+plot(time(1:end-1), wrench(1,:), 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('fx (N)');
+legend({'friction $f_x$', '$wrench_x$'}, 'Interpreter', 'latex', 'Location', 'best');
+grid on;
+
+subplot(4, 1, 2);
+plot(time(1:end-1), ground_friction(2,:), 'LineWidth', 2);
+hold on;
+plot(time(1:end-1), wrench(2,:), 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('fy (N)');
+legend({'friction $f_y$', '$wrench_y$'}, 'Interpreter', 'latex', 'Location', 'best');
+grid on;
+
+subplot(4,1,3);
+plot(time(1:end-1), ground_friction(3,:), 'LineWidth', 2);
+hold on;
+plot(time(1:end-1), wrench(3,:), 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('$\tau$ (N/m)','Interpreter','latex');
+legend({'friction $\tau_z$', '$wrench_z$'}, 'Interpreter', 'latex', 'Location', 'best');
+grid on;
+
+subplot(4,1,4);
+plot(time(1:end-1), sqrt(ground_friction(1,:).^2 + ground_friction(2,:).^2), 'LineWidth', 2);
+hold on;
+plot(time(1:end-1), sqrt(wrench(1,:).^2 + wrench(2,:).^2), 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('force norm','Interpreter','latex');
+legend({'friction force norm', 'wrench force norm'}, 'Interpreter', 'latex', 'Location', 'best');
+grid on;
+
+%% wrench and firction forces
+
+figure;
+subplot(4, 1, 1);
+plot(time(1:end-1), wrench(1,:)+ground_friction(1,:), 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('fx (N)');
+grid on;
+
+subplot(4, 1, 2);
+plot(time(1:end-1), wrench(2,:)+ground_friction(2,:), 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('fy (N)');
+grid on;
+
+subplot(4,1,3);
+plot(time(1:end-1), wrench(3,:)+ground_friction(3,:), 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('$\tau$ (N/m)','Interpreter','latex');
+grid on;
+
+subplot(4,1,4);
+plot(time(1:end-1), sqrt((wrench(1,:)+ground_friction(1,:)).^2 + (wrench(2,:)+ground_friction(2,:)).^2), 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('force norm','Interpreter','latex');
+grid on;
+
+
 
 % %% Video area
 % % --- Precompute contact points for each time step ---
